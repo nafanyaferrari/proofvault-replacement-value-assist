@@ -1,0 +1,76 @@
+export type SubscriptionTier = 'free' | 'premium';
+export type Confidence = 'low' | 'medium' | 'high';
+export type ItemCondition = 'new' | 'used' | 'refurbished' | 'unknown';
+export type ItemStatus = 'normal' | 'stolen' | 'damaged' | 'destroyed' | 'missing' | 'recovered';
+
+export interface ComparableListing {
+  id: string;
+  title: string;
+  marketplace: string;
+  condition: ItemCondition;
+  price: number;
+  currency: string;
+  url: string;
+  imageUrl?: string;
+  matchReason: string;
+  matchConfidence: Confidence;
+  checkedAt: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  itemName: string;
+  aiSuggestedTitle?: string;
+  aiDescription?: string;
+  userDescription?: string;
+  category: string;
+  location: string;
+  room?: string;
+  make?: string;
+  model?: string;
+  serialNumber?: string;
+  barcode?: string;
+  ownerMarking?: string;
+  markingType?: string;
+  markingLocation?: string;
+  distinguishingFeatures?: string;
+  condition: ItemCondition;
+  purchasePrice?: number;
+  userEnteredValue?: number;
+  estimatedReplacementValueLow?: number;
+  estimatedReplacementValueHigh?: number;
+  estimatedReplacementValueSelected?: number;
+  valuationCurrency?: string;
+  valuationConfidence?: Confidence;
+  valuationSourceSummary?: string;
+  valuationCheckedAt?: string;
+  valuationNotes?: string;
+  comparableListings: ComparableListing[];
+  photos: string[];
+  serialPhotos: string[];
+  markingPhotos: string[];
+  receiptFiles: string[];
+  appraisalFiles: string[];
+  warrantyFiles: string[];
+  status: ItemStatus;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IncidentItem { itemId: string; status: Exclude<ItemStatus, 'normal'>; notes?: string; }
+export interface Incident {
+  id: string; title: string; type: string; incidentDate: string; location: string;
+  policeAgency?: string; policeCaseNumber?: string; insuranceCompany?: string;
+  insuranceClaimNumber?: string; notes?: string; items: IncidentItem[]; createdAt: string;
+}
+
+export interface ValuationInput {
+  itemName: string; category?: string; make?: string; model?: string; serialNumber?: string;
+  barcode?: string; aiDescription?: string; userDescription?: string; condition?: ItemCondition; photos?: string[];
+}
+export interface ValuationResult {
+  estimatedReplacementValueLow: number; estimatedReplacementValueHigh: number;
+  suggestedReplacementValue: number; confidence: Confidence; sourceSummary: string;
+  comparableListings: ComparableListing[]; missingFields: string[]; disclaimer: string;
+}

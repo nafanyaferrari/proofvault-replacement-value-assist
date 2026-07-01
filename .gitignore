@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+dist/
+work/
+outputs/
+*.tsbuildinfo
+*.db
+*.log
+.env*
+!.env.example
