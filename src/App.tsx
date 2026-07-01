@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { ArrowLeft, Check, ChevronRight, Clipboard, ExternalLink, FileText, Home, LockKeyhole, Package, Pencil, Plus, Search, Settings, ShieldCheck, Sparkles, Tag, TriangleAlert } from 'lucide-react';
-import { loadItems, loadTier, saveItems, saveTier, seedIncident } from './data';
+import { ArrowLeft, Check, ChevronRight, ExternalLink, FileText, Home, LockKeyhole, Package, Pencil, Plus, Search, Settings, ShieldCheck, Sparkles, Tag, TriangleAlert } from 'lucide-react';
+import { loadItems, loadTier, saveItems, saveTier } from './data';
 import { InventoryItem, SubscriptionTier } from './types';
 import { completenessScore } from './services/completeness';
 import { VALUATION_DISCLAIMER, valuationService } from './services/valuationService';
 import { dateTime, money } from './lib/utils';
-import { incidentReport } from './services/exportService';
 import { ItemForm } from './components/ItemForm';
+import { IncidentManager } from './components/IncidentManager';
 
 type View = 'home' | 'inventory' | 'detail' | 'form' | 'incident' | 'settings';
 
@@ -37,7 +37,7 @@ export function App() {
   return <div className="shell">
     <aside><div className="brand"><ShieldCheck/><b>ProofVault</b></div><p className="eyebrow">PROPERTY EVIDENCE</p>{nav('home','Overview',<Home/>)}{nav('inventory','Inventory',<Package/>)}{nav('incident','Incident',<FileText/>)}<div className="spacer"/>{nav('settings','Settings',<Settings/>)}<div className="privacy"><LockKeyhole/><div><b>Local demo</b><small>Data stays in this browser</small></div></div></aside>
     <main>{notice&&<button className="toast" onClick={()=>setNotice('')} aria-label="Dismiss notification"><Check/>{notice}</button>}
-      {view==='home'&&<HomeView items={items} tier={tier} open={open}/>} {view==='inventory'&&<InventoryView items={items} open={open} add={startNew}/>} {view==='detail'&&<DetailView item={selected} tier={tier} loading={loading} back={()=>setView('inventory')} edit={()=>startEdit(selected.id)} find={find} choose={choose} manual={manual} setManual={setManual} saveManual={saveManual} upgrade={()=>setTier('premium')}/>} {view==='form'&&<ItemForm item={editingId ? items.find(item=>item.id===editingId) : undefined} onCancel={()=>setView(editingId?'detail':'inventory')} onSave={saveItem}/>} {view==='incident'&&<IncidentView items={items} tier={tier}/>} {view==='settings'&&<SettingsView tier={tier} setTier={setTier}/>} 
+      {view==='home'&&<HomeView items={items} tier={tier} open={open}/>} {view==='inventory'&&<InventoryView items={items} open={open} add={startNew}/>} {view==='detail'&&<DetailView item={selected} tier={tier} loading={loading} back={()=>setView('inventory')} edit={()=>startEdit(selected.id)} find={find} choose={choose} manual={manual} setManual={setManual} saveManual={saveManual} upgrade={()=>setTier('premium')}/>} {view==='form'&&<ItemForm item={editingId ? items.find(item=>item.id===editingId) : undefined} onCancel={()=>setView(editingId?'detail':'inventory')} onSave={saveItem}/>} {view==='incident'&&<IncidentManager items={items} tier={tier}/>} {view==='settings'&&<SettingsView tier={tier} setTier={setTier}/>} 
     </main>
   </div>;
 }
@@ -57,5 +57,4 @@ function DetailView({item,tier,loading,back,edit,find,choose,manual,setManual,sa
 
 function ValuationResults({item,best,choose}:{item:InventoryItem;best?:InventoryItem['comparableListings'][number];choose:(n:number)=>void}){return <><div className="estimate"><div><small>ESTIMATED REPLACEMENT RANGE</small><b>{money(item.estimatedReplacementValueLow)} – {money(item.estimatedReplacementValueHigh)}</b><span>Selected estimate: {money(item.estimatedReplacementValueSelected)}</span></div><div className={`confidence ${item.valuationConfidence}`}>{item.valuationConfidence} confidence</div></div>{best&&<><p className="eyebrow">BEST COMPARABLE</p><div className="comparable"><div><b>{best.title}</b><small>{best.marketplace} · {best.condition} · {best.matchReason}</small></div><strong>{money(best.price)}</strong><a href={best.url} target="_blank" rel="noreferrer" aria-label="Open comparable listing"><ExternalLink/></a></div></>}{item.comparableListings.slice(1).map(x=><div className="comparable minor" key={x.id}><div><b>{x.title}</b><small>{x.marketplace} · {x.condition}</small></div><strong>{money(x.price)}</strong><button className="textBtn" onClick={()=>choose(x.price)}>Use this value</button></div>)}</>}
 
-function IncidentView({items,tier}:{items:InventoryItem[];tier:SubscriptionTier}){const[shown,setShown]=useState(false);const report=incidentReport(seedIncident,items,tier);return <><PageHead kicker="INCIDENT MODE" title="Garage burglary" sub="Police and insurance packet · 1 affected item"/><section className="panel incident"><div><span className="status">STOLEN</span><h2>{items[0].itemName}</h2><p>Police case {seedIncident.policeCaseNumber} · Claim {seedIncident.insuranceClaimNumber}</p></div><button className="primary" onClick={()=>setShown(!shown)}><FileText/>{shown?'Hide packet':'Generate packet'}</button></section>{shown&&<section className="panel report"><div className="sectionTitle"><h2>Incident export packet</h2><button onClick={()=>navigator.clipboard.writeText(report)}><Clipboard/>Copy report</button></div><pre>{report}</pre></section>}</>}
 function SettingsView({tier,setTier}:{tier:SubscriptionTier;setTier:(tier:SubscriptionTier)=>void}){return <><PageHead kicker="SETTINGS" title="Demo controls" sub="Switch plans to test both Replacement Value Assist experiences."/><section className="panel settings"><h2>Subscription status</h2><div className="segmented"><button className={tier==='free'?'selected':''} onClick={()=>setTier('free')}>Free</button><button className={tier==='premium'?'selected premiumBtn':''} onClick={()=>setTier('premium')}>Premium</button></div><p>Premium enables automatic comparable lookup, saved estimates, and marketplace links in incident exports.</p></section><section className="panel privacyPanel"><LockKeyhole/><div><h2>Privacy by default</h2><p>This web demo stores inventory locally in your browser. No account, analytics, or cloud upload is used.</p></div></section></>}

@@ -12,3 +12,5 @@ export const loadItems=()=>{try{return JSON.parse(localStorage.getItem('pv-items
 export const saveItems=(items:InventoryItem[])=>localStorage.setItem('pv-items',JSON.stringify(items));
 export const loadTier=():SubscriptionTier=>(localStorage.getItem('pv-tier') as SubscriptionTier)||'free';
 export const saveTier=(tier:SubscriptionTier)=>localStorage.setItem('pv-tier',tier);
+export const loadIncidents=():Incident[]=>{try{return JSON.parse(localStorage.getItem('pv-incidents')||'null')||[seedIncident]}catch{return[seedIncident]}};
+export const saveIncidents=(incidents:Incident[])=>localStorage.setItem('pv-incidents',JSON.stringify(incidents));
