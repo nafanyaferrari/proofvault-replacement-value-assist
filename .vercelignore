@@ -1,12 +1,7 @@
 node_modules/
-.expo/
 dist/
 work/
 outputs/
+.git/
 *.tsbuildinfo
-*.db
 *.log
-.env*
-!.env.example
-
-.vercel/
