@@ -2,6 +2,7 @@ export type SubscriptionTier = 'free' | 'premium';
 export type Confidence = 'low' | 'medium' | 'high';
 export type ItemCondition = 'new' | 'used' | 'refurbished' | 'unknown';
 export type ItemStatus = 'normal' | 'stolen' | 'damaged' | 'destroyed' | 'missing' | 'recovered';
+export interface LocationRecord { id:string; name:string; notes?:string; createdAt:string; }
 
 export interface ComparableListing {
   id: string;
@@ -34,6 +35,7 @@ export interface InventoryItem {
   markingType?: string;
   markingLocation?: string;
   distinguishingFeatures?: string;
+  purchaseDate?: string;
   condition: ItemCondition;
   purchasePrice?: number;
   userEnteredValue?: number;
@@ -49,7 +51,10 @@ export interface InventoryItem {
   photos: string[];
   serialPhotos: string[];
   markingPhotos: string[];
+  markingNotes?: string;
+  hasOwnerMarking?: boolean;
   damagePhotos?: string[];
+  otherFiles?: string[];
   receiptFiles: string[];
   appraisalFiles: string[];
   warrantyFiles: string[];

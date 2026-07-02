@@ -1,4 +1,4 @@
-import { Incident, InventoryItem, SubscriptionTier } from './types';
+import { Incident, InventoryItem, LocationRecord, SubscriptionTier } from './types';
 const now='2026-06-30T19:00:00.000Z';
 export const seedItems:InventoryItem[]=[
  {id:'drill',itemName:'Milwaukee M18 Brushless Drill',category:'Tools',location:'Garage',room:'Tool cabinet',make:'Milwaukee',model:'M18 2801-20',serialNumber:'PV-M18-48291',ownerMarking:'NJR',markingType:'engraved',markingLocation:'Battery well',distinguishingFeatures:'Red paint scuff near chuck',condition:'used',purchasePrice:179,userEnteredValue:225,comparableListings:[],photos:['drill'],serialPhotos:['serial'],markingPhotos:['mark'],receiptFiles:[],appraisalFiles:[],warrantyFiles:[],status:'normal',notes:'Includes two batteries and hard case.',createdAt:now,updatedAt:now},
@@ -14,3 +14,6 @@ export const loadTier=():SubscriptionTier=>(localStorage.getItem('pv-tier') as S
 export const saveTier=(tier:SubscriptionTier)=>localStorage.setItem('pv-tier',tier);
 export const loadIncidents=():Incident[]=>{try{return JSON.parse(localStorage.getItem('pv-incidents')||'null')||[seedIncident]}catch{return[seedIncident]}};
 export const saveIncidents=(incidents:Incident[])=>localStorage.setItem('pv-incidents',JSON.stringify(incidents));
+const seedLocations:LocationRecord[]=[{id:'loc-home',name:'Home',notes:'Primary residence',createdAt:now},{id:'loc-garage',name:'Garage',createdAt:now},{id:'loc-storage',name:'Storage unit',createdAt:now}];
+export const loadLocations=():LocationRecord[]=>{try{return JSON.parse(localStorage.getItem('pv-locations')||'null')||seedLocations}catch{return seedLocations}};
+export const saveLocations=(locations:LocationRecord[])=>localStorage.setItem('pv-locations',JSON.stringify(locations));

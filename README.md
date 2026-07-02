@@ -20,6 +20,7 @@ npm run dev
 
 Data is stored only in browser `localStorage`. Marketplace results are mocked and adapters are defined for a future secure backend; API keys must never be put in the client.
 
+
 ## Deploy
 
 Import the repository into Vercel. The included `vercel.json` supports client-side routing; the default Vite build settings are sufficient.

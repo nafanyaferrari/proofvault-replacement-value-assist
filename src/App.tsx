@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ArrowLeft, Check, ChevronRight, ExternalLink, FileText, Home, LockKeyhole, Package, Pencil, Plus, Search, Settings, ShieldCheck, Sparkles, Tag, TriangleAlert } from 'lucide-react';
-import { loadItems, loadTier, saveIncidents, saveItems, saveTier } from './data';
-import { InventoryItem, SubscriptionTier } from './types';
+import { ArrowLeft, Check, ChevronRight, ExternalLink, FileText, Home, LockKeyhole, MapPin, Package, Pencil, Plus, Search, Settings, ShieldCheck, Sparkles, Tag, TriangleAlert } from 'lucide-react';
+import { loadItems, loadLocations, loadTier, saveIncidents, saveItems, saveLocations, saveTier } from './data';
+import { InventoryItem, LocationRecord, SubscriptionTier } from './types';
 import { completenessScore } from './services/completeness';
 import { VALUATION_DISCLAIMER, valuationService } from './services/valuationService';
 import { dateTime, money } from './lib/utils';
@@ -9,8 +9,10 @@ import { ItemForm } from './components/ItemForm';
 import { IncidentManager } from './components/IncidentManager';
 import { BackupPanel } from './components/BackupPanel';
 import { ProofVaultBackup } from './services/backupService';
+import { LocationsManager } from './components/LocationsManager';
+import { PrivacySecurityPanel } from './components/PrivacySecurityPanel';
 
-type View = 'home' | 'inventory' | 'detail' | 'form' | 'incident' | 'settings';
+type View = 'home' | 'inventory' | 'detail' | 'form' | 'locations' | 'incident' | 'settings';
 
 export function App() {
   const [view, setView] = useState<View>('home');
@@ -21,10 +23,12 @@ export function App() {
   const [manual, setManual] = useState('');
   const [notice, setNotice] = useState('');
   const [editingId, setEditingId] = useState<string>();
+  const [locations, setLocations] = useState<LocationRecord[]>(loadLocations);
   const selected = items.find(item => item.id === selectedId) ?? items[0];
   const update = (next: InventoryItem) => { const all = items.map(i => i.id === next.id ? next : i); setItems(all); saveItems(all); };
   const setTier = (next: SubscriptionTier) => { setTierState(next); saveTier(next); setNotice(`${next === 'premium' ? 'Premium' : 'Free'} demo mode enabled.`); };
-  const restoreBackup = (backup: ProofVaultBackup) => { setItems(backup.items); saveItems(backup.items); saveIncidents(backup.incidents); setTierState(backup.settings.subscriptionTier); saveTier(backup.settings.subscriptionTier); setSelectedId(backup.items[0]?.id ?? ''); setNotice('Local backup restored.'); };
+  const restoreBackup = (backup: ProofVaultBackup) => { setItems(backup.items); saveItems(backup.items); saveIncidents(backup.incidents); setLocations(backup.locations); saveLocations(backup.locations); setTierState(backup.settings.subscriptionTier); saveTier(backup.settings.subscriptionTier); setSelectedId(backup.items[0]?.id ?? ''); setNotice('Local backup restored.'); };
+  const updateLocations = (next: LocationRecord[]) => { setLocations(next); saveLocations(next); setNotice('Locations updated.'); };
   const open = (id: string) => { setSelectedId(id); setView('detail'); };
   const startNew = () => { setEditingId(undefined); setView('form'); };
   const startEdit = (id: string) => { setEditingId(id); setView('form'); };
@@ -36,11 +40,11 @@ export function App() {
   const find = async () => { setLoading(true); const r = await valuationService.findComparableValues(selected); update({...selected, estimatedReplacementValueLow:r.estimatedReplacementValueLow, estimatedReplacementValueHigh:r.estimatedReplacementValueHigh, estimatedReplacementValueSelected:r.suggestedReplacementValue, valuationCurrency:'USD', valuationConfidence:r.confidence, valuationSourceSummary:r.sourceSummary, valuationCheckedAt:new Date().toISOString(), comparableListings:r.comparableListings, updatedAt:new Date().toISOString()}); setLoading(false); setNotice('Comparable values found and saved.'); };
   const choose = (price: number) => { update({...selected, estimatedReplacementValueSelected:price, valuationNotes:'Selected from a saved comparable', updatedAt:new Date().toISOString()}); setNotice('Selected comparable value saved.'); };
   const saveManual = () => { const value=Number(manual); if(value>0){update({...selected,userEnteredValue:value,updatedAt:new Date().toISOString()});setManual('');setNotice('Manual value saved.');} };
-  const nav = (target: Exclude<View,'detail'>, label: string, icon: React.ReactNode) => <button className={view===target?'nav active':'nav'} onClick={()=>setView(target)}>{icon}<span>{label}</span></button>;
+  const nav = (target: Exclude<View,'detail'|'form'>, label: string, icon: React.ReactNode) => <button className={view===target?'nav active':'nav'} onClick={()=>setView(target)}>{icon}<span>{label}</span></button>;
   return <div className="shell">
-    <aside><div className="brand"><ShieldCheck/><b>ProofVault</b></div><p className="eyebrow">PROPERTY EVIDENCE</p>{nav('home','Overview',<Home/>)}{nav('inventory','Inventory',<Package/>)}{nav('incident','Incident',<FileText/>)}<div className="spacer"/>{nav('settings','Settings',<Settings/>)}<div className="privacy"><LockKeyhole/><div><b>Local demo</b><small>Data stays in this browser</small></div></div></aside>
+    <aside><div className="brand"><ShieldCheck/><b>ProofVault</b></div><p className="eyebrow">PROPERTY EVIDENCE</p>{nav('home','Overview',<Home/>)}{nav('inventory','Inventory',<Package/>)}{nav('locations','Locations',<MapPin/>)}{nav('incident','Incident',<FileText/>)}<div className="spacer"/>{nav('settings','Settings',<Settings/>)}<div className="privacy"><LockKeyhole/><div><b>Local demo</b><small>Data stays in this browser</small></div></div></aside>
     <main>{notice&&<button className="toast" onClick={()=>setNotice('')} aria-label="Dismiss notification"><Check/>{notice}</button>}
-      {view==='home'&&<HomeView items={items} tier={tier} open={open}/>} {view==='inventory'&&<InventoryView items={items} open={open} add={startNew}/>} {view==='detail'&&selected&&<DetailView item={selected} tier={tier} loading={loading} back={()=>setView('inventory')} edit={()=>startEdit(selected.id)} find={find} choose={choose} manual={manual} setManual={setManual} saveManual={saveManual} upgrade={()=>setTier('premium')}/>} {view==='form'&&<ItemForm item={editingId ? items.find(item=>item.id===editingId) : undefined} onCancel={()=>setView(editingId?'detail':'inventory')} onSave={saveItem}/>} {view==='incident'&&<IncidentManager items={items} tier={tier}/>} {view==='settings'&&<SettingsView items={items} tier={tier} setTier={setTier} restore={restoreBackup}/>} 
+      {view==='home'&&<HomeView items={items} tier={tier} open={open}/>} {view==='inventory'&&<InventoryView items={items} open={open} add={startNew}/>} {view==='detail'&&selected&&<DetailView item={selected} tier={tier} loading={loading} back={()=>setView('inventory')} edit={()=>startEdit(selected.id)} find={find} choose={choose} manual={manual} setManual={setManual} saveManual={saveManual} upgrade={()=>setTier('premium')}/>} {view==='form'&&<ItemForm locations={locations} item={editingId ? items.find(item=>item.id===editingId) : undefined} onCancel={()=>setView(editingId?'detail':'inventory')} onSave={saveItem}/>} {view==='locations'&&<LocationsManager locations={locations} items={items} onChange={updateLocations}/>} {view==='incident'&&<IncidentManager items={items} tier={tier}/>} {view==='settings'&&<SettingsView items={items} locations={locations} tier={tier} setTier={setTier} restore={restoreBackup}/>} 
     </main>
   </div>;
 }
@@ -60,4 +64,4 @@ function DetailView({item,tier,loading,back,edit,find,choose,manual,setManual,sa
 
 function ValuationResults({item,best,choose}:{item:InventoryItem;best?:InventoryItem['comparableListings'][number];choose:(n:number)=>void}){return <><div className="estimate"><div><small>ESTIMATED REPLACEMENT RANGE</small><b>{money(item.estimatedReplacementValueLow)} – {money(item.estimatedReplacementValueHigh)}</b><span>Selected estimate: {money(item.estimatedReplacementValueSelected)}</span></div><div className={`confidence ${item.valuationConfidence}`}>{item.valuationConfidence} confidence</div></div>{best&&<><p className="eyebrow">BEST COMPARABLE</p><div className="comparable"><div><b>{best.title}</b><small>{best.marketplace} · {best.condition} · {best.matchReason}</small></div><strong>{money(best.price)}</strong><a href={best.url} target="_blank" rel="noreferrer" aria-label="Open comparable listing"><ExternalLink/></a></div></>}{item.comparableListings.slice(1).map(x=><div className="comparable minor" key={x.id}><div><b>{x.title}</b><small>{x.marketplace} · {x.condition}</small></div><strong>{money(x.price)}</strong><button className="textBtn" onClick={()=>choose(x.price)}>Use this value</button></div>)}</>}
 
-function SettingsView({items,tier,setTier,restore}:{items:InventoryItem[];tier:SubscriptionTier;setTier:(tier:SubscriptionTier)=>void;restore:(backup:ProofVaultBackup)=>void}){return <><PageHead kicker="SETTINGS" title="Demo controls" sub="Manage local data and test both Replacement Value Assist experiences."/><section className="panel settings"><h2>Subscription status</h2><div className="segmented"><button className={tier==='free'?'selected':''} onClick={()=>setTier('free')}>Free</button><button className={tier==='premium'?'selected premiumBtn':''} onClick={()=>setTier('premium')}>Premium</button></div><p>Premium enables automatic comparable lookup, saved estimates, and marketplace links in incident exports.</p></section><BackupPanel items={items} tier={tier} onRestore={restore}/><section className="panel privacyPanel"><LockKeyhole/><div><h2>Privacy by default</h2><p>This web demo stores inventory locally in your browser. No account, analytics, or cloud upload is used.</p></div></section></>}
+function SettingsView({items,locations,tier,setTier,restore}:{items:InventoryItem[];locations:LocationRecord[];tier:SubscriptionTier;setTier:(tier:SubscriptionTier)=>void;restore:(backup:ProofVaultBackup)=>void}){return <><PageHead kicker="SETTINGS" title="Settings & privacy" sub="Manage local data, privacy, security placeholders, and the demo plan."/><section className="panel settings"><h2>Subscription status</h2><div className="segmented"><button className={tier==='free'?'selected':''} onClick={()=>setTier('free')}>Free</button><button className={tier==='premium'?'selected premiumBtn':''} onClick={()=>setTier('premium')}>Premium</button></div><p>Premium enables automatic comparable lookup, saved estimates, and marketplace links in incident exports.</p></section><BackupPanel items={items} locations={locations} tier={tier} onRestore={restore}/><PrivacySecurityPanel/></>}
