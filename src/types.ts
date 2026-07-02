@@ -49,6 +49,7 @@ export interface InventoryItem {
   photos: string[];
   serialPhotos: string[];
   markingPhotos: string[];
+  damagePhotos?: string[];
   receiptFiles: string[];
   appraisalFiles: string[];
   warrantyFiles: string[];
