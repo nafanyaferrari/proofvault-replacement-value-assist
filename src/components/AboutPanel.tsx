@@ -1,0 +1,2 @@
+import { Info } from 'lucide-react';
+export function AboutPanel(){return <section className="panel privacyNotice"><Info/><div><p className="eyebrow green">ABOUT</p><h2>ProofVault web MVP</h2><p>A local-first property documentation tool for preparing police and insurance evidence before a loss occurs. This web build is the proving ground for the planned Expo and SQLite mobile app.</p><p>Version 0.4 · No paid services required · Data model and service interfaces are mobile-portable.</p></div></section>}

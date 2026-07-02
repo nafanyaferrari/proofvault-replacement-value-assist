@@ -17,7 +17,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Locations | Complete (web) | Dedicated local manager; item forms use saved-location suggestions. |
 | Incident Mode / Detail | Complete | Create/edit incidents and affected property. |
 | Export/Share Packet | Complete | Text, CSV, printable HTML/PDF, clipboard, and share sheet. |
-| Settings/About | Partial | Backup/restore and plan controls complete; privacy/security content in this milestone. |
+| Settings/About | Complete (web) | Plan controls, backup/restore, privacy/security, roadmap, and About content. |
 | All inventory fields | Complete (web model) | Includes purchase date, marking notes, and explicit marking toggle. |
 | All evidence categories | Complete (web) | General, serial, marking, receipt, appraisal, warranty, damage/loss, and other-document attachments. |
 | Native camera/library picker | Deferred | Browser file picker now; Expo ImagePicker in mobile phase. |
@@ -35,10 +35,13 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | README/setup/test notes | Complete | Local setup and test flow documented. |
 | No paid services | Complete | Static Vercel hosting and local browser persistence. |
 | Original acceptance flow | Mostly complete (web) | Add item, attach evidence, save, score, incident selection, export, share/copy. Native camera remains deferred. |
+| Safe lifecycle controls | Complete (web) | Items archive without breaking incident evidence; incidents delete only after confirmation. |
+| Dashboard completion guidance | Complete | Prioritizes weak records and gives the next documentation action. |
+| Automated browser acceptance run | Environment-blocked | Required in-app browser skill/runtime is missing from this session; production build and eight logic/export tests pass. |
 
 ## Next gap-closing sequence
 
-1. Delete/archive flows and improved dashboard guidance.
-2. End-to-end web acceptance testing and screenshots.
-3. Refine printable layouts for large evidence sets.
+1. End-to-end web acceptance testing and screenshots.
+2. Refine printable layouts for large evidence sets.
+3. Mobile conversion preparation: shared-domain package and SQLite schema design.
 4. Expo/SQLite mobile conversion and native camera/biometric work.

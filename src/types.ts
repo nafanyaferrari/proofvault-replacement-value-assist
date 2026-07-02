@@ -60,6 +60,7 @@ export interface InventoryItem {
   warrantyFiles: string[];
   status: ItemStatus;
   notes?: string;
+  archivedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
