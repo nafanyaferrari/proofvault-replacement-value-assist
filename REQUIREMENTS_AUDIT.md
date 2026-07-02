@@ -25,9 +25,9 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Mock AI description service/UI | Complete | Typed mock service, review UI, missing-field guidance, and explicit verification labeling. |
 | Documentation completeness score | Complete | 0–100 score and plain-language feedback. |
 | Incident-specific notes | Complete | Per affected item. |
-| Incident-specific photos | Missing | Planned next. |
-| Export owner/contact placeholders | Missing | Planned next. |
-| Export full evidence rendering | Partial | Printable report includes item photos and core evidence; attachment rendering needs expansion. |
+| Incident-specific photos | Complete (web) | Per affected item with local size safeguards and export rendering. |
+| Export owner/contact placeholders | Complete | Name, phone, email, and mailing address in incident forms and exports. |
+| Export full evidence rendering | Complete (web) | Labeled item, serial, marking, incident, damage, receipt, appraisal, warranty, and other evidence groups. |
 | App lock placeholder | Complete | Local preference clearly labeled as non-enforcing. |
 | Privacy notice screen | Complete (settings view) | Explains local storage, data-loss risk, no analytics, and backups. |
 | Encryption/biometric/cloud/share-link TODOs | Complete | Explicit security roadmap in Settings. |
@@ -38,7 +38,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 
 ## Next gap-closing sequence
 
-1. Incident-specific photos, owner/contact export fields, full evidence rendering.
-2. Delete/archive flows and improved dashboard guidance.
-3. End-to-end web acceptance testing and screenshots.
+1. Delete/archive flows and improved dashboard guidance.
+2. End-to-end web acceptance testing and screenshots.
+3. Refine printable layouts for large evidence sets.
 4. Expo/SQLite mobile conversion and native camera/biometric work.

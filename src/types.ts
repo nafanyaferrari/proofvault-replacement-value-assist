@@ -64,11 +64,12 @@ export interface InventoryItem {
   updatedAt: string;
 }
 
-export interface IncidentItem { itemId: string; status: Exclude<ItemStatus, 'normal'>; notes?: string; }
+export interface IncidentItem { itemId: string; status: Exclude<ItemStatus, 'normal'>; notes?: string; photos?:string[]; }
 export interface Incident {
   id: string; title: string; type: string; incidentDate: string; location: string;
   policeAgency?: string; policeCaseNumber?: string; insuranceCompany?: string;
-  insuranceClaimNumber?: string; notes?: string; items: IncidentItem[]; createdAt: string;
+  insuranceClaimNumber?: string; ownerName?:string; ownerPhone?:string; ownerEmail?:string;
+  ownerAddress?:string; notes?: string; items: IncidentItem[]; createdAt: string;
 }
 
 export interface ValuationInput {

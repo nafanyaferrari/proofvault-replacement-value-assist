@@ -1,0 +1,2 @@
+.incidentEvidence{margin:10px 0 0 28px}.incidentEvidence .evidenceUploader{background:#0a1713;border-color:#315548}.incidentEvidence .evidenceFiles{grid-template-columns:repeat(4,90px)}
+@media(max-width:800px){.incidentEvidence{margin-left:0}.incidentEvidence .evidenceFiles{grid-template-columns:repeat(2,1fr)}}
