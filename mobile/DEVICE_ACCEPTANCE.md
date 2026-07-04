@@ -17,10 +17,11 @@ Run these on one current iPhone and one current Android device before a store bu
 3. Open the drill and take an item photo. Deny permission once, then grant it and retry.
 4. Choose a library photo, close the app, reopen it, and confirm both images remain visible.
 5. Record an owner marking and location, attach separate serial and marking photos, reopen the item, and confirm each appears under the correct heading.
-6. Find comparable values, choose “Use this value,” restart, and confirm the estimate persists.
-7. Switch to Free, confirm automatic lookup is blocked and manual value editing still works; switch back to Premium.
-8. Enable App Lock. Background and reopen the app; confirm authentication is required.
-9. Cancel authentication and confirm inventory stays hidden, then unlock successfully.
-10. Confirm VoiceOver/TalkBack announces cards, form fields, photo buttons, App Lock, and valuation actions.
+6. Attach a receipt, appraisal, warranty, and other PDF; restart and confirm each remains under the correct heading.
+7. Find comparable values, choose “Use this value,” restart, and confirm the estimate persists.
+8. Switch to Free, confirm automatic lookup is blocked and manual value editing still works; switch back to Premium.
+9. Enable App Lock. Background and reopen the app; confirm authentication is required.
+10. Cancel authentication and confirm inventory stays hidden, then unlock successfully.
+11. Confirm VoiceOver/TalkBack announces cards, form fields, evidence buttons, App Lock, and valuation actions.
 
 Face ID requires an Expo development build rather than Expo Go. Camera, file persistence, and biometric behavior must be tested on physical devices; successful native bundles cannot prove hardware behavior.

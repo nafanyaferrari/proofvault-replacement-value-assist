@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { uid, type InventoryDraft, type InventoryItem, type SubscriptionTier, type ValuationResult } from '@proofvault/domain';
+import { uid, type AttachmentType, type InventoryDraft, type InventoryItem, type SubscriptionTier, type ValuationResult } from '@proofvault/domain';
 import { schema } from './schema';
 
 type ItemRow = { id: string; item_name: string; category: string; location_text: string; make: string | null; model: string | null; serial_number: string | null; owner_marking:string|null; marking_location:string|null; distinguishing_features:string|null; user_description:string|null; user_entered_value: number | null; condition: InventoryItem['condition']; status: InventoryItem['status']; created_at: string; updated_at: string };
@@ -48,6 +48,11 @@ export async function getLatestValuation(db: SQLiteDatabase, item: InventoryItem
     photos: attachments.filter(file => file.attachment_type === 'item').map(file => file.local_uri),
     serialPhotos: attachments.filter(file => file.attachment_type === 'serial').map(file => file.local_uri),
     markingPhotos: attachments.filter(file => file.attachment_type === 'marking').map(file => file.local_uri),
+    receiptFiles: attachments.filter(file => file.attachment_type === 'receipt').map(file => file.local_uri),
+    appraisalFiles: attachments.filter(file => file.attachment_type === 'appraisal').map(file => file.local_uri),
+    warrantyFiles: attachments.filter(file => file.attachment_type === 'warranty').map(file => file.local_uri),
+    damagePhotos: attachments.filter(file => file.attachment_type === 'damage').map(file => file.local_uri),
+    otherFiles: attachments.filter(file => file.attachment_type === 'other').map(file => file.local_uri),
   };
   const valuation = await db.getFirstAsync<{ id:string; estimated_low:number|null; estimated_high:number|null; selected_value:number|null; currency:string; confidence:InventoryItem['valuationConfidence']; source_summary:string|null; checked_at:string|null; notes:string|null }>('SELECT id,estimated_low,estimated_high,selected_value,currency,confidence,source_summary,checked_at,notes FROM valuation_records WHERE item_id = ? ORDER BY checked_at DESC LIMIT 1', item.id);
   if (!valuation) return hydratedItem;
@@ -55,7 +60,7 @@ export async function getLatestValuation(db: SQLiteDatabase, item: InventoryItem
   return { ...hydratedItem, estimatedReplacementValueLow: valuation.estimated_low ?? undefined, estimatedReplacementValueHigh: valuation.estimated_high ?? undefined, estimatedReplacementValueSelected: valuation.selected_value ?? undefined, valuationCurrency: valuation.currency, valuationConfidence: valuation.confidence ?? undefined, valuationSourceSummary: valuation.source_summary ?? undefined, valuationCheckedAt: valuation.checked_at ?? undefined, valuationNotes: valuation.notes ?? undefined, comparableListings: comparableListings.map(listing => ({ id:listing.id, title:listing.title, marketplace:listing.marketplace, condition:listing.condition, price:listing.price, currency:listing.currency, url:listing.url, imageUrl:listing.image_url ?? undefined, matchReason:listing.match_reason, matchConfidence:listing.match_confidence, checkedAt:listing.checked_at })) };
 }
 
-export async function saveItemPhoto(db: SQLiteDatabase, itemId: string, attachmentType: 'item'|'serial'|'marking', uri: string, mimeType?: string, originalName?: string) {
+export async function saveItemAttachment(db: SQLiteDatabase, itemId: string, attachmentType: AttachmentType, uri: string, mimeType?: string, originalName?: string) {
   await db.runAsync('INSERT INTO item_attachments (id,item_id,attachment_type,local_uri,mime_type,original_name,created_at) VALUES (?,?,?,?,?,?,?)', `attachment_${Date.now()}`, itemId, attachmentType, uri, mimeType ?? null, originalName ?? null, new Date().toISOString());
 }
 

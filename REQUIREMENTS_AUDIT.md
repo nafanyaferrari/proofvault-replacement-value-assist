@@ -19,7 +19,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Export/Share Packet | Complete | Text, CSV, printable HTML/PDF, clipboard, and share sheet. |
 | Settings/About | Complete (web) | Plan controls, backup/restore, privacy/security, roadmap, and About content. |
 | All inventory fields | Complete (web model); mobile core fields | Mobile add/edit covers identity, description, condition, location, and manual value; extended evidence fields remain. |
-| All evidence categories | Complete (web); mobile photos partial | Mobile supports labeled general, serial-number, and owner-marking photos; documents and damage evidence remain. |
+| All evidence categories | Complete (web); mobile mostly complete | Mobile supports labeled general, serial, marking, receipt, appraisal, warranty, and other evidence; damage evidence remains. |
 | Native camera/library picker | Complete (mobile implementation) | Captures or selects images and copies them to app-private storage; physical-device acceptance remains. |
 | Owner-applied markings first-class | Complete (web and mobile core) | Mobile stores marking text, location, distinguishing features, and separately labeled marking photos. |
 | Mock AI description service/UI | Complete | Typed mock service, review UI, missing-field guidance, and explicit verification labeling. |

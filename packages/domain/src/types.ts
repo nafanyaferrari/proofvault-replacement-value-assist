@@ -2,6 +2,7 @@ export type SubscriptionTier = 'free' | 'premium';
 export type Confidence = 'low' | 'medium' | 'high';
 export type ItemCondition = 'new' | 'used' | 'refurbished' | 'unknown';
 export type ItemStatus = 'normal' | 'stolen' | 'damaged' | 'destroyed' | 'missing' | 'recovered';
+export type AttachmentType = 'item' | 'serial' | 'marking' | 'receipt' | 'appraisal' | 'warranty' | 'damage' | 'other';
 
 export interface LocationRecord { id: string; name: string; notes?: string; createdAt: string; }
 export interface ComparableListing { id: string; title: string; marketplace: string; condition: ItemCondition; price: number; currency: string; url: string; imageUrl?: string; matchReason: string; matchConfidence: Confidence; checkedAt: string; }

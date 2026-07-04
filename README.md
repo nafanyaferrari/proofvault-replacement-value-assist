@@ -40,3 +40,5 @@ Run `npm run bundle:native --workspace @proofvault/mobile` to verify Metro can p
 The mobile demo subscription is stored in SQLite and can be switched between free and premium without payment. Free mode keeps manual value entry available but blocks automatic comparable lookup; premium enables lookup and estimate persistence.
 
 Mobile evidence capture distinguishes general item photos, serial-number photos, and owner-marking photos. Marking text, location, and distinguishing features are stored with the item and contribute to completeness.
+
+Receipts, appraisals, warranties, and other supporting PDFs or images can be selected with the native document picker. Files are copied from temporary picker storage into ProofVault’s private documents directory and categorized in SQLite.
