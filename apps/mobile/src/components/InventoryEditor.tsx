@@ -6,7 +6,7 @@ interface InventoryEditorProps { item?:InventoryItem; onCancel():void; onSave(dr
 const conditions: ItemCondition[] = ['new','used','refurbished','unknown'];
 
 export function InventoryEditor({ item, onCancel, onSave }: InventoryEditorProps) {
-  const [draft, setDraft] = useState<InventoryDraft>({ itemName:item?.itemName??'', category:item?.category??'', location:item?.location??'', make:item?.make??'', model:item?.model??'', serialNumber:item?.serialNumber??'', userDescription:item?.userDescription??'', userEnteredValue:item?.userEnteredValue, condition:item?.condition??'unknown' });
+  const [draft, setDraft] = useState<InventoryDraft>({ itemName:item?.itemName??'', category:item?.category??'', location:item?.location??'', make:item?.make??'', model:item?.model??'', serialNumber:item?.serialNumber??'', ownerMarking:item?.ownerMarking??'', markingLocation:item?.markingLocation??'', distinguishingFeatures:item?.distinguishingFeatures??'', userDescription:item?.userDescription??'', userEnteredValue:item?.userEnteredValue, condition:item?.condition??'unknown' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const set = <K extends keyof InventoryDraft>(key:K,value:InventoryDraft[K]) => setDraft(current=>({...current,[key]:value}));
@@ -19,6 +19,9 @@ export function InventoryEditor({ item, onCancel, onSave }: InventoryEditorProps
     <Field label="Location *" value={draft.location} onChangeText={value=>set('location',value)} />
     <View style={styles.row}><View style={styles.half}><Field label="Make" value={draft.make} onChangeText={value=>set('make',value)} /></View><View style={styles.half}><Field label="Model" value={draft.model} onChangeText={value=>set('model',value)} /></View></View>
     <Field label="Serial number" value={draft.serialNumber} onChangeText={value=>set('serialNumber',value)} autoCapitalize="characters" />
+    <Field label="Owner-applied marking" value={draft.ownerMarking} onChangeText={value=>set('ownerMarking',value)} autoCapitalize="characters" />
+    <Field label="Marking location" value={draft.markingLocation} onChangeText={value=>set('markingLocation',value)} />
+    <Field label="Other distinguishing features" value={draft.distinguishingFeatures} onChangeText={value=>set('distinguishingFeatures',value)} multiline />
     <Field label="Manual value" value={draft.userEnteredValue?.toString()??''} onChangeText={value=>set('userEnteredValue',value?Number(value):undefined)} keyboardType="decimal-pad" />
     <Text style={styles.label}>Condition</Text><View style={styles.conditionRow}>{conditions.map(condition=><Pressable accessibilityRole="radio" accessibilityState={{selected:draft.condition===condition}} key={condition} style={[styles.chip,draft.condition===condition&&styles.chipSelected]} onPress={()=>set('condition',condition)}><Text style={draft.condition===condition?styles.chipTextSelected:styles.chipText}>{condition}</Text></Pressable>)}</View>
     <Field label="Description" value={draft.userDescription} onChangeText={value=>set('userDescription',value)} multiline />
