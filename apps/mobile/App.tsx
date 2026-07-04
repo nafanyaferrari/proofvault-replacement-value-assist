@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 import { completenessScore, money, valuationService, VALUATION_DISCLAIMER, type InventoryItem, type ValuationResult } from '@proofvault/domain';
 import { getLatestValuation, initializeDatabase, listInventory, saveItemPhoto, saveValuation } from './src/db/inventoryRepository';
 import { chooseItemPhoto, takeItemPhoto } from './src/services/photoService';
+import { authenticateForVault, canUseAppLock, isAppLockEnabled, setAppLockEnabled } from './src/services/appLockService';
 
 const dbPromise = SQLite.openDatabaseAsync('proofvault.db');
 
@@ -14,6 +15,9 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [finding, setFinding] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [lockEnabled, setLockEnabled] = useState(false);
+  const [lockReady, setLockReady] = useState(false);
+  const [locked, setLocked] = useState(false);
 
   const load = useCallback(async () => {
     const db = await dbPromise;
@@ -21,7 +25,8 @@ export default function App() {
     setItems(await listInventory(db));
     setLoading(false);
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void (async () => { const enabled = await isAppLockEnabled(); setLockEnabled(enabled); setLocked(enabled); setLockReady(true); if (!enabled) await load(); })(); }, [load]);
+  useEffect(() => { const subscription = AppState.addEventListener('change', state => { if (lockEnabled && state !== 'active') setLocked(true); }); return () => subscription.remove(); }, [lockEnabled]);
 
   async function openItem(item: InventoryItem) {
     const db = await dbPromise;
@@ -53,11 +58,22 @@ export default function App() {
       Alert.alert('Could not add photo', error instanceof Error ? error.message : 'Please try again.');
     }
   }
+  async function unlock() { if (await authenticateForVault()) { setLocked(false); if (!items.length) await load(); } }
+  async function toggleAppLock(enabled: boolean) {
+    if (enabled) {
+      if (!await canUseAppLock()) { Alert.alert('App lock unavailable', 'Set up Face ID, Touch ID, or fingerprint authentication in your device settings first.'); return; }
+      if (!await authenticateForVault()) return;
+    }
+    await setAppLockEnabled(enabled);
+    setLockEnabled(enabled);
+  }
 
-  if (loading) return <SafeAreaView style={styles.center}><ActivityIndicator color="#5dd6ad" /><Text style={styles.muted}>Opening your private vault…</Text></SafeAreaView>;
+  if (!lockReady || (loading && !locked)) return <SafeAreaView style={styles.center}><ActivityIndicator color="#5dd6ad" /><Text style={styles.muted}>Opening your private vault…</Text></SafeAreaView>;
+  if (locked) return <SafeAreaView style={styles.center}><Text style={styles.lockIcon}>◆</Text><Text style={styles.title}>ProofVault is locked</Text><Text style={styles.lockCopy}>Authenticate with your device to view private inventory records.</Text><Pressable accessibilityRole="button" style={styles.unlockButton} onPress={() => void unlock()}><Text style={styles.buttonText}>Unlock ProofVault</Text></Pressable></SafeAreaView>;
   if (!selected) return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
     <Text style={styles.brand}>PROOFVAULT</Text><Text style={styles.title}>Your inventory</Text><Text style={styles.muted}>Stored locally on this device.</Text>
     {items.map(item => <Pressable accessibilityRole="button" key={item.id} style={styles.card} onPress={() => void openItem(item)}><Text style={styles.cardTitle}>{item.itemName}</Text><Text style={styles.muted}>{item.category} · {item.location}</Text><Text style={styles.value}>{money(item.userEnteredValue)}</Text></Pressable>)}
+    <View style={styles.card}><View style={styles.settingRow}><View style={styles.settingCopy}><Text style={styles.cardTitle}>App lock</Text><Text style={styles.muted}>Require device authentication whenever ProofVault reopens.</Text></View><Switch accessibilityLabel="Enable app lock" value={lockEnabled} onValueChange={value => void toggleAppLock(value)} trackColor={{ false:'#29473e', true:'#3f9f7e' }} thumbColor={lockEnabled ? '#5dd6ad' : '#8da39d'} /></View></View>
   </ScrollView></SafeAreaView>;
 
   return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
@@ -84,4 +100,5 @@ const styles = StyleSheet.create({
   pill:{alignSelf:'flex-start',color:'#07110f',backgroundColor:'#e7b85b',paddingHorizontal:9,paddingVertical:4,borderRadius:99,fontSize:10,fontWeight:'900'}, range:{color:'#f2faf7',fontSize:27,fontWeight:'800'}, listing:{borderTopColor:'#29473e',borderTopWidth:1,paddingTop:10,gap:3},
   button:{backgroundColor:'#5dd6ad',borderRadius:12,padding:14,alignItems:'center',marginTop:4}, buttonText:{color:'#07110f',fontWeight:'800'}, secondaryButton:{borderColor:'#5dd6ad',borderWidth:1,borderRadius:12,padding:13,alignItems:'center'}, secondaryButtonText:{color:'#5dd6ad',fontWeight:'800'},
   photoRow:{gap:10}, photo:{width:150,height:112,borderRadius:10,backgroundColor:'#07110f'}, actionRow:{flexDirection:'row',gap:9}, smallButton:{flex:1,backgroundColor:'#5dd6ad',borderRadius:10,padding:11,alignItems:'center'}, smallOutlineButton:{flex:1,borderColor:'#5dd6ad',borderWidth:1,borderRadius:10,padding:10,alignItems:'center'}, disclaimer:{color:'#82968f',fontSize:11,lineHeight:16},
+  lockIcon:{color:'#5dd6ad',fontSize:34}, lockCopy:{color:'#8da39d',fontSize:15,textAlign:'center',maxWidth:300,lineHeight:22}, unlockButton:{backgroundColor:'#5dd6ad',borderRadius:12,paddingHorizontal:24,paddingVertical:14,marginTop:8}, settingRow:{flexDirection:'row',alignItems:'center',gap:12}, settingCopy:{flex:1,gap:5},
 });

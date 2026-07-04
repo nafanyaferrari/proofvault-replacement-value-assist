@@ -6,8 +6,8 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "ios": { "supportsTablet": true, "bundleIdentifier": "com.proofvault.app" },
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.proofvault.app", "config": { "usesNonExemptEncryption": false } },
     "android": { "package": "com.proofvault.app" },
-    "plugins": ["expo-sqlite", ["expo-image-picker", { "photosPermission": "ProofVault uses your photo library only when you choose evidence to attach.", "cameraPermission": "ProofVault uses the camera to photograph inventory and identifying evidence.", "microphonePermission": false }]]
+    "plugins": ["expo-sqlite", "expo-secure-store", ["expo-local-authentication", { "faceIDPermission": "Allow ProofVault to use Face ID to unlock your private inventory." }], ["expo-image-picker", { "photosPermission": "ProofVault uses your photo library only when you choose evidence to attach.", "cameraPermission": "ProofVault uses the camera to photograph inventory and identifying evidence.", "microphonePermission": false }]]
   }
 }

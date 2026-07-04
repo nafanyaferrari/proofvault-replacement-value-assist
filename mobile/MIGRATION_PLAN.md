@@ -6,6 +6,8 @@ The Expo application scaffold now lives in `apps/mobile`. Its first vertical sli
 
 Schema migration 2 adds durable item-attachment records. Camera and library images are copied out of temporary picker storage into the app-private documents directory before their URI and metadata are committed to SQLite.
 
+The optional native App Lock uses Local Authentication and SecureStore. It checks for enrolled device authentication before enabling, requires authentication on launch, and relocks whenever the app leaves the foreground. Face ID requires a development build for complete testing; Expo Go does not support that path.
+
 The web MVP is the behavior prototype. The mobile implementation should use Expo, React Native, Expo Router, TypeScript, `expo-sqlite`, and Expo ImagePicker without changing the domain meaning of inventory, incidents, valuations, or comparable listings.
 
 ## Package boundaries
