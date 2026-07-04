@@ -18,7 +18,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Incident Mode / Detail | Complete | Create/edit incidents and affected property. |
 | Export/Share Packet | Complete | Text, CSV, printable HTML/PDF, clipboard, and share sheet. |
 | Settings/About | Complete (web) | Plan controls, backup/restore, privacy/security, roadmap, and About content. |
-| All inventory fields | Complete (web model) | Includes purchase date, marking notes, and explicit marking toggle. |
+| All inventory fields | Complete (web model); mobile core fields | Mobile add/edit covers identity, description, condition, location, and manual value; extended evidence fields remain. |
 | All evidence categories | Complete (web) | General, serial, marking, receipt, appraisal, warranty, damage/loss, and other-document attachments. |
 | Native camera/library picker | Complete (mobile implementation) | Captures or selects images and copies them to app-private storage; physical-device acceptance remains. |
 | Owner-applied markings first-class | Complete | Dedicated form section, marking types, location, description, and photos. |

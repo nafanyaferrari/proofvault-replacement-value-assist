@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import type { InventoryItem, ValuationResult } from '@proofvault/domain';
+import { uid, type InventoryDraft, type InventoryItem, type ValuationResult } from '@proofvault/domain';
 import { schema } from './schema';
 
 type ItemRow = { id: string; item_name: string; category: string; location_text: string; make: string | null; model: string | null; serial_number: string | null; user_entered_value: number | null; condition: InventoryItem['condition']; status: InventoryItem['status']; created_at: string; updated_at: string };
@@ -19,6 +19,17 @@ export async function initializeDatabase(db: SQLiteDatabase) {
 export async function listInventory(db: SQLiteDatabase) {
   const rows = await db.getAllAsync<ItemRow>('SELECT id,item_name,category,location_text,make,model,serial_number,user_entered_value,condition,status,created_at,updated_at FROM inventory_items WHERE archived_at IS NULL ORDER BY updated_at DESC');
   return rows.map(fromRow);
+}
+
+export async function saveInventoryItem(db: SQLiteDatabase, draft: InventoryDraft, itemId?: string) {
+  const now = new Date().toISOString();
+  if (itemId) {
+    await db.runAsync('UPDATE inventory_items SET item_name=?,category=?,location_text=?,make=?,model=?,serial_number=?,user_description=?,user_entered_value=?,condition=?,updated_at=? WHERE id=?', draft.itemName.trim(), draft.category.trim(), draft.location.trim(), draft.make.trim()||null, draft.model.trim()||null, draft.serialNumber.trim()||null, draft.userDescription.trim()||null, draft.userEnteredValue??null, draft.condition, now, itemId);
+    return itemId;
+  }
+  const id=uid('item');
+  await db.runAsync('INSERT INTO inventory_items (id,item_name,category,location_text,make,model,serial_number,user_description,user_entered_value,condition,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', id, draft.itemName.trim(), draft.category.trim(), draft.location.trim(), draft.make.trim()||null, draft.model.trim()||null, draft.serialNumber.trim()||null, draft.userDescription.trim()||null, draft.userEnteredValue??null, draft.condition, 'normal', now, now);
+  return id;
 }
 
 export async function getLatestValuation(db: SQLiteDatabase, item: InventoryItem): Promise<InventoryItem> {

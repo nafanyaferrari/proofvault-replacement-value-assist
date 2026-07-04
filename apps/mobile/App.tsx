@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as SQLite from 'expo-sqlite';
-import { completenessScore, money, valuationService, VALUATION_DISCLAIMER, type InventoryItem, type ValuationResult } from '@proofvault/domain';
-import { getLatestValuation, initializeDatabase, listInventory, saveItemPhoto, saveValuation } from './src/db/inventoryRepository';
+import { completenessScore, money, valuationService, VALUATION_DISCLAIMER, type InventoryDraft, type InventoryItem, type ValuationResult } from '@proofvault/domain';
+import { getLatestValuation, initializeDatabase, listInventory, saveInventoryItem, saveItemPhoto, saveValuation } from './src/db/inventoryRepository';
 import { chooseItemPhoto, takeItemPhoto } from './src/services/photoService';
 import { authenticateForVault, canUseAppLock, isAppLockEnabled, setAppLockEnabled } from './src/services/appLockService';
+import { InventoryEditor } from './src/components/InventoryEditor';
 
 const dbPromise = SQLite.openDatabaseAsync('proofvault.db');
 
@@ -18,6 +19,8 @@ export default function App() {
   const [lockEnabled, setLockEnabled] = useState(false);
   const [lockReady, setLockReady] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem>();
 
   const load = useCallback(async () => {
     const db = await dbPromise;
@@ -67,14 +70,24 @@ export default function App() {
     await setAppLockEnabled(enabled);
     setLockEnabled(enabled);
   }
+  async function saveEditor(draft: InventoryDraft) {
+    const db=await dbPromise;
+    const savedId=await saveInventoryItem(db,draft,editingItem?.id);
+    const updatedItems=await listInventory(db);
+    setItems(updatedItems);
+    if(selected?.id===savedId){const updated=updatedItems.find(item=>item.id===savedId);if(updated)setSelected(await getLatestValuation(db,updated));}
+    setEditorOpen(false);setEditingItem(undefined);
+  }
+  const editor=editorOpen?<InventoryEditor item={editingItem} onCancel={()=>{setEditorOpen(false);setEditingItem(undefined);}} onSave={saveEditor}/>:null;
 
   if (!lockReady || (loading && !locked)) return <SafeAreaView style={styles.center}><ActivityIndicator color="#5dd6ad" /><Text style={styles.muted}>Opening your private vault…</Text></SafeAreaView>;
   if (locked) return <SafeAreaView style={styles.center}><Text style={styles.lockIcon}>◆</Text><Text style={styles.title}>ProofVault is locked</Text><Text style={styles.lockCopy}>Authenticate with your device to view private inventory records.</Text><Pressable accessibilityRole="button" style={styles.unlockButton} onPress={() => void unlock()}><Text style={styles.buttonText}>Unlock ProofVault</Text></Pressable></SafeAreaView>;
-  if (!selected) return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
+  if (!selected) return <><SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
     <Text style={styles.brand}>PROOFVAULT</Text><Text style={styles.title}>Your inventory</Text><Text style={styles.muted}>Stored locally on this device.</Text>
+    <Pressable accessibilityRole="button" style={styles.button} onPress={()=>{setEditingItem(undefined);setEditorOpen(true);}}><Text style={styles.buttonText}>Add inventory item</Text></Pressable>
     {items.map(item => <Pressable accessibilityRole="button" key={item.id} style={styles.card} onPress={() => void openItem(item)}><Text style={styles.cardTitle}>{item.itemName}</Text><Text style={styles.muted}>{item.category} · {item.location}</Text><Text style={styles.value}>{money(item.userEnteredValue)}</Text></Pressable>)}
     <View style={styles.card}><View style={styles.settingRow}><View style={styles.settingCopy}><Text style={styles.cardTitle}>App lock</Text><Text style={styles.muted}>Require device authentication whenever ProofVault reopens.</Text></View><Switch accessibilityLabel="Enable app lock" value={lockEnabled} onValueChange={value => void toggleAppLock(value)} trackColor={{ false:'#29473e', true:'#3f9f7e' }} thumbColor={lockEnabled ? '#5dd6ad' : '#8da39d'} /></View></View>
-  </ScrollView></SafeAreaView>;
+  </ScrollView></SafeAreaView>{editor}</>;
 
   return <SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
     <Pressable accessibilityRole="button" onPress={() => { setSelected(undefined); setValuation(undefined); }}><Text style={styles.back}>‹ Inventory</Text></Pressable>
@@ -84,13 +97,13 @@ export default function App() {
       <View style={styles.actionRow}><Pressable accessibilityRole="button" style={styles.smallButton} onPress={() => void addPhoto('camera')}><Text style={styles.buttonText}>Take photo</Text></Pressable><Pressable accessibilityRole="button" style={styles.smallOutlineButton} onPress={() => void addPhoto('library')}><Text style={styles.secondaryButtonText}>Choose photo</Text></Pressable></View>
       <Text style={styles.disclaimer}>Photos are copied into ProofVault’s private app documents folder and referenced by the local database.</Text>
     </View>
-    <View style={styles.card}><Text style={styles.cardTitle}>Item record</Text><Text style={styles.value}>{[selected.make, selected.model].filter(Boolean).join(' ')}</Text><Text style={styles.muted}>Serial: {selected.serialNumber || 'Not recorded'}</Text><Text style={styles.score}>{completenessScore(selected).score}% complete</Text></View>
+    <View style={styles.card}><Text style={styles.cardTitle}>Item record</Text><Text style={styles.value}>{[selected.make, selected.model].filter(Boolean).join(' ')}</Text><Text style={styles.muted}>Serial: {selected.serialNumber || 'Not recorded'}</Text><Text style={styles.score}>{completenessScore(selected).score}% complete</Text><Pressable accessibilityRole="button" style={styles.smallOutlineButton} onPress={()=>{setEditingItem(selected);setEditorOpen(true);}}><Text style={styles.secondaryButtonText}>Edit item details</Text></Pressable></View>
     <View style={styles.premiumCard}><Text style={styles.pill}>PREMIUM</Text><Text style={styles.cardTitle}>Replacement Value Assist</Text>
       {valuation ? <><Text style={styles.range}>{money(valuation.estimatedReplacementValueLow)}–{money(valuation.estimatedReplacementValueHigh)}</Text><Text style={styles.value}>{valuation.confidence.toUpperCase()} confidence</Text>{valuation.comparableListings.map(listing => <View key={listing.id} style={styles.listing}><Text style={styles.value}>{listing.title}</Text><Text style={styles.muted}>{listing.marketplace} · {listing.condition} · {money(listing.price)}</Text></View>)}<Pressable accessibilityRole="button" style={styles.secondaryButton} onPress={() => void useValue()}><Text style={styles.secondaryButtonText}>{saved ? 'Value saved on this device' : `Use ${money(valuation.suggestedReplacementValue)}`}</Text></Pressable></> : selected.estimatedReplacementValueSelected ? <><Text style={styles.range}>{money(selected.estimatedReplacementValueLow)}–{money(selected.estimatedReplacementValueHigh)}</Text><Text style={styles.value}>Saved value: {money(selected.estimatedReplacementValueSelected)} · {selected.valuationConfidence?.toUpperCase()} confidence</Text>{selected.comparableListings.map(listing => <View key={listing.id} style={styles.listing}><Text style={styles.value}>{listing.title}</Text><Text style={styles.muted}>{listing.marketplace} · {listing.condition} · {money(listing.price)}</Text></View>)}</> : <Text style={styles.muted}>Estimate replacement cost using mock comparable marketplace listings.</Text>}
       <Pressable accessibilityRole="button" style={styles.button} onPress={() => void findValues()} disabled={finding}><Text style={styles.buttonText}>{finding ? 'Finding comparables…' : 'Find Comparable Values'}</Text></Pressable>
       <Text style={styles.disclaimer}>{VALUATION_DISCLAIMER}</Text>
     </View>
-  </ScrollView></SafeAreaView>;
+  </ScrollView>{editor}</SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
