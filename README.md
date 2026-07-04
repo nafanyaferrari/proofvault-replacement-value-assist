@@ -42,3 +42,5 @@ The mobile demo subscription is stored in SQLite and can be switched between fre
 Mobile evidence capture distinguishes general item photos, serial-number photos, and owner-marking photos. Marking text, location, and distinguishing features are stored with the item and contribute to completeness.
 
 Receipts, appraisals, warranties, and other supporting PDFs or images can be selected with the native document picker. Files are copied from temporary picker storage into ProofVault’s private documents directory and categorized in SQLite.
+
+Damage or loss photos have a separate mobile capture category and gallery so they remain distinguishable from general inventory evidence.
