@@ -60,3 +60,5 @@ Incident-specific camera/library photos attach to an affected item within one in
 The mobile Settings tab contains reusable saved locations, App Lock, demo subscription controls, privacy guidance, and About information. Saved locations appear as one-tap suggestions in the item editor while free-text locations remain supported.
 
 Mobile Settings can export and restore an exact SQLite database image. Restore validates the file header, database integrity, and required ProofVault tables before replacement. This database-only backup preserves records and file references but does not embed app-private photo/document files.
+
+Mobile item editing now covers the full core record: location/room, make/model, serial, barcode, owner marking details, distinguishing features, purchase date/price, manual value, condition, current status, description, and notes.

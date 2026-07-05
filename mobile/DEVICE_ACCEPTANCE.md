@@ -13,7 +13,7 @@
 Run these on one current iPhone and one current Android device before a store build:
 
 1. Fresh install opens the seeded inventory from SQLite.
-2. Add an inventory item, reopen it, edit its serial number and manual value, and confirm both changes persist.
+2. Add an inventory item with purchase, barcode, room, status, marking, and value fields; reopen it, edit those fields, and confirm changes persist.
 3. Add a saved location in Settings and confirm it appears as a one-tap suggestion in the item editor.
 4. Open the drill and take an item photo. Deny permission once, then grant it and retry.
 5. Choose a library photo, close the app, reopen it, and confirm both images remain visible.

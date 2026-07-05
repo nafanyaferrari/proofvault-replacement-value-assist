@@ -4,28 +4,37 @@ import type { InventoryDraft, InventoryItem, ItemCondition } from '@proofvault/d
 
 interface InventoryEditorProps { item?:InventoryItem; locationSuggestions?:string[]; onCancel():void; onSave(draft:InventoryDraft):Promise<void>; }
 const conditions: ItemCondition[] = ['new','used','refurbished','unknown'];
+const statuses: InventoryItem['status'][]=['normal','stolen','damaged','destroyed','missing','recovered'];
 
 export function InventoryEditor({ item, locationSuggestions=[], onCancel, onSave }: InventoryEditorProps) {
-  const [draft, setDraft] = useState<InventoryDraft>({ itemName:item?.itemName??'', category:item?.category??'', location:item?.location??'', make:item?.make??'', model:item?.model??'', serialNumber:item?.serialNumber??'', ownerMarking:item?.ownerMarking??'', markingLocation:item?.markingLocation??'', distinguishingFeatures:item?.distinguishingFeatures??'', userDescription:item?.userDescription??'', userEnteredValue:item?.userEnteredValue, condition:item?.condition??'unknown' });
+  const [draft, setDraft] = useState<InventoryDraft>({ itemName:item?.itemName??'', category:item?.category??'', location:item?.location??'', room:item?.room??'', make:item?.make??'', model:item?.model??'', serialNumber:item?.serialNumber??'', barcode:item?.barcode??'', ownerMarking:item?.ownerMarking??'', markingType:item?.markingType??'', markingLocation:item?.markingLocation??'', markingNotes:item?.markingNotes??'', distinguishingFeatures:item?.distinguishingFeatures??'', purchaseDate:item?.purchaseDate??'', purchasePrice:item?.purchasePrice, userDescription:item?.userDescription??'', notes:item?.notes??'', userEnteredValue:item?.userEnteredValue, condition:item?.condition??'unknown', status:item?.status??'normal' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const set = <K extends keyof InventoryDraft>(key:K,value:InventoryDraft[K]) => setDraft(current=>({...current,[key]:value}));
-  async function submit(){if(!draft.itemName.trim()||!draft.category.trim()||!draft.location.trim()){setError('Item name, category, and location are required.');return;}if(draft.userEnteredValue!==undefined&&!Number.isFinite(draft.userEnteredValue)){setError('Manual value must be a valid number.');return;}setError('');setSaving(true);try{await onSave(draft);}catch{setError('This item could not be saved. Please try again.');}finally{setSaving(false);}}
+  async function submit(){if(!draft.itemName.trim()||!draft.category.trim()||!draft.location.trim()){setError('Item name, category, and location are required.');return;}if((draft.userEnteredValue!==undefined&&!Number.isFinite(draft.userEnteredValue))||(draft.purchasePrice!==undefined&&!Number.isFinite(draft.purchasePrice))){setError('Purchase price and manual value must be valid numbers.');return;}setError('');setSaving(true);try{await onSave(draft);}catch{setError('This item could not be saved. Please try again.');}finally{setSaving(false);}}
   return <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onCancel}><ScrollView style={styles.safe} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
     <Text style={styles.eyebrow}>PROOFVAULT INVENTORY</Text><Text style={styles.title}>{item?'Edit item':'Add item'}</Text>
     {error?<Text accessibilityRole="alert" style={styles.error}>{error}</Text>:null}
     <Field label="Item name *" value={draft.itemName} onChangeText={value=>set('itemName',value)} />
     <Field label="Category *" value={draft.category} onChangeText={value=>set('category',value)} />
     <Field label="Location *" value={draft.location} onChangeText={value=>set('location',value)} />
+    <Field label="Room or area" value={draft.room} onChangeText={value=>set('room',value)} />
     {locationSuggestions.length?<View style={styles.conditionRow}>{locationSuggestions.map(location=><Pressable accessibilityRole="button" key={location} style={styles.chip} onPress={()=>set('location',location)}><Text style={styles.chipText}>{location}</Text></Pressable>)}</View>:null}
     <View style={styles.row}><View style={styles.half}><Field label="Make" value={draft.make} onChangeText={value=>set('make',value)} /></View><View style={styles.half}><Field label="Model" value={draft.model} onChangeText={value=>set('model',value)} /></View></View>
     <Field label="Serial number" value={draft.serialNumber} onChangeText={value=>set('serialNumber',value)} autoCapitalize="characters" />
+    <Field label="Barcode" value={draft.barcode} onChangeText={value=>set('barcode',value)} />
     <Field label="Owner-applied marking" value={draft.ownerMarking} onChangeText={value=>set('ownerMarking',value)} autoCapitalize="characters" />
+    <Field label="Marking type" value={draft.markingType} onChangeText={value=>set('markingType',value)} />
     <Field label="Marking location" value={draft.markingLocation} onChangeText={value=>set('markingLocation',value)} />
+    <Field label="Marking notes" value={draft.markingNotes} onChangeText={value=>set('markingNotes',value)} multiline />
     <Field label="Other distinguishing features" value={draft.distinguishingFeatures} onChangeText={value=>set('distinguishingFeatures',value)} multiline />
     <Field label="Manual value" value={draft.userEnteredValue?.toString()??''} onChangeText={value=>set('userEnteredValue',value?Number(value):undefined)} keyboardType="decimal-pad" />
+    <Field label="Purchase date (YYYY-MM-DD)" value={draft.purchaseDate} onChangeText={value=>set('purchaseDate',value)} />
+    <Field label="Purchase price" value={draft.purchasePrice?.toString()??''} onChangeText={value=>set('purchasePrice',value?Number(value):undefined)} keyboardType="decimal-pad" />
     <Text style={styles.label}>Condition</Text><View style={styles.conditionRow}>{conditions.map(condition=><Pressable accessibilityRole="radio" accessibilityState={{selected:draft.condition===condition}} key={condition} style={[styles.chip,draft.condition===condition&&styles.chipSelected]} onPress={()=>set('condition',condition)}><Text style={draft.condition===condition?styles.chipTextSelected:styles.chipText}>{condition}</Text></Pressable>)}</View>
+    <Text style={styles.label}>Current status</Text><View style={styles.conditionRow}>{statuses.map(status=><Pressable accessibilityRole="radio" accessibilityState={{selected:draft.status===status}} key={status} style={[styles.chip,draft.status===status&&styles.chipSelected]} onPress={()=>set('status',status)}><Text style={draft.status===status?styles.chipTextSelected:styles.chipText}>{status}</Text></Pressable>)}</View>
     <Field label="Description" value={draft.userDescription} onChangeText={value=>set('userDescription',value)} multiline />
+    <Field label="Item notes" value={draft.notes} onChangeText={value=>set('notes',value)} multiline />
     <Pressable accessibilityRole="button" style={styles.save} disabled={saving} onPress={()=>void submit()}><Text style={styles.saveText}>{saving?'Saving…':'Save item'}</Text></Pressable>
     <Pressable accessibilityRole="button" style={styles.cancel} onPress={onCancel}><Text style={styles.cancelText}>Cancel</Text></Pressable>
   </ScrollView></Modal>;
