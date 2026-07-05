@@ -9,6 +9,9 @@ const fromRow = (row: ItemRow): InventoryItem => ({ id: row.id, itemName: row.it
 
 export async function initializeDatabase(db: SQLiteDatabase) {
   await db.execAsync(schema);
+  const incidentColumns=await db.getAllAsync<{name:string}>('PRAGMA table_info(incidents)');
+  const existing=new Set(incidentColumns.map(column=>column.name));
+  for(const column of ['owner_name','owner_phone','owner_email','owner_address','police_agency','police_case_number','insurance_company','insurance_claim_number'])if(!existing.has(column))await db.execAsync(`ALTER TABLE incidents ADD COLUMN ${column} TEXT`);
   const result = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM inventory_items');
   if (!result?.count) {
     const now = new Date().toISOString();

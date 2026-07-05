@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS item_attachments (
 );
 CREATE TABLE IF NOT EXISTS incidents (
   id TEXT PRIMARY KEY, title TEXT NOT NULL, type TEXT NOT NULL, incident_date TEXT NOT NULL, location_text TEXT NOT NULL,
-  notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+  owner_name TEXT, owner_phone TEXT, owner_email TEXT, owner_address TEXT, police_agency TEXT, police_case_number TEXT,
+  insurance_company TEXT, insurance_claim_number TEXT, notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS incident_items (
   incident_id TEXT NOT NULL REFERENCES incidents(id) ON DELETE CASCADE,
@@ -43,4 +44,5 @@ INSERT OR IGNORE INTO app_settings(key,value,updated_at) VALUES ('subscriptionTi
 INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (1,datetime('now'));
 INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (2,datetime('now'));
 INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (3,datetime('now'));
+INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (4,datetime('now'));
 `;
