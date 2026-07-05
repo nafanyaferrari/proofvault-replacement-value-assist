@@ -58,3 +58,5 @@ Mobile inventory uses archive/restore instead of deletion. Archived items leave 
 Incident-specific camera/library photos attach to an affected item within one incident. They remain separate from general and damage/loss inventory evidence, persist through incident edits, and appear as a labeled count in shared packets.
 
 The mobile Settings tab contains reusable saved locations, App Lock, demo subscription controls, privacy guidance, and About information. Saved locations appear as one-tap suggestions in the item editor while free-text locations remain supported.
+
+Mobile Settings can export and restore an exact SQLite database image. Restore validates the file header, database integrity, and required ProofVault tables before replacement. This database-only backup preserves records and file references but does not embed app-private photo/document files.

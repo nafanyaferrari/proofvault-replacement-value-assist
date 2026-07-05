@@ -35,3 +35,5 @@ Run these on one current iPhone and one current Android device before a store bu
 20. Confirm VoiceOver/TalkBack announces tabs, cards, form fields, evidence buttons, App Lock, and valuation actions.
 
 Face ID requires an Expo development build rather than Expo Go. Camera, file persistence, and biometric behavior must be tested on physical devices; successful native bundles cannot prove hardware behavior.
+
+Also export a database backup, change a disposable record, restore the backup, and confirm the original record returns. Repeat with an invalid file and confirm the live database is not replaced. Remember that this checkpoint does not package private attachment files into the database backup.
