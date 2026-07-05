@@ -14,11 +14,12 @@ Run these on one current iPhone and one current Android device before a store bu
 
 1. Fresh install opens the seeded inventory from SQLite.
 2. Add an inventory item, reopen it, edit its serial number and manual value, and confirm both changes persist.
-3. Open the drill and take an item photo. Deny permission once, then grant it and retry.
-4. Choose a library photo, close the app, reopen it, and confirm both images remain visible.
-5. Record an owner marking and location, attach separate serial and marking photos, reopen the item, and confirm each appears under the correct heading.
-6. Attach a receipt, appraisal, warranty, and other PDF; restart and confirm each remains under the correct heading.
-7. Attach a damage/loss photo and confirm it does not appear in the general item-photo gallery.
+3. Add a saved location in Settings and confirm it appears as a one-tap suggestion in the item editor.
+4. Open the drill and take an item photo. Deny permission once, then grant it and retry.
+5. Choose a library photo, close the app, reopen it, and confirm both images remain visible.
+6. Record an owner marking and location, attach separate serial and marking photos, reopen the item, and confirm each appears under the correct heading.
+7. Attach a receipt, appraisal, warranty, and other PDF; restart and confirm each remains under the correct heading.
+8. Attach a damage/loss photo and confirm it does not appear in the general item-photo gallery.
 8. Create an incident with two affected items and different statuses; restart and confirm both relationships persist.
 9. Edit that incident with owner, police case, and insurance claim details; reopen it and confirm changes persist.
 10. Add different notes to both affected items and confirm the shared packet keeps each note with the correct item.

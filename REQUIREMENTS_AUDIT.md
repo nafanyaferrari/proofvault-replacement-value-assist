@@ -14,10 +14,10 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Inventory List | Complete | Search and item navigation. |
 | Add/Edit Item | Complete | Validation and local persistence. |
 | Item Detail | Complete | Identity, evidence, score, values, and valuation assist. |
-| Locations | Complete (web) | Dedicated local manager; item forms use saved-location suggestions. |
+| Locations | Complete (web and mobile) | Dedicated local manager; item forms use saved-location suggestions. |
 | Incident Mode / Detail | Complete (web and mobile core) | Mobile creates and edits incidents, owner/claim details, affected inventory, and per-item statuses. |
 | Export/Share Packet | Complete (web and mobile text) | Mobile shares a local incident packet with valuation evidence and premium-gated comparable links; web additionally supports CSV and printable PDF. |
-| Settings/About | Complete (web) | Plan controls, backup/restore, privacy/security, roadmap, and About content. |
+| Settings/About | Complete (web); mobile core | Mobile has locations, plan controls, App Lock, privacy, and About; mobile backup/restore remains. |
 | All inventory fields | Complete (web model); mobile core fields | Mobile add/edit covers identity, description, condition, location, and manual value; extended evidence fields remain. |
 | All evidence categories | Complete (web and mobile) | Mobile supports labeled general, serial, marking, damage/loss, receipt, appraisal, warranty, and other evidence. |
 | Native camera/library picker | Complete (mobile implementation) | Captures or selects images and copies them to app-private storage; physical-device acceptance remains. |
@@ -29,7 +29,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Export owner/contact placeholders | Complete | Name, phone, email, and mailing address in incident forms and exports. |
 | Export full evidence rendering | Complete (web) | Labeled item, serial, marking, incident, damage, receipt, appraisal, warranty, and other evidence groups. |
 | App lock | Complete (mobile implementation) | Optional device authentication, secure preference storage, and foreground relocking; physical-device acceptance remains. |
-| Privacy notice screen | Complete (settings view) | Explains local storage, data-loss risk, no analytics, and backups. |
+| Privacy notice screen | Complete (web and mobile settings) | Explains local storage, data-loss risk, no analytics, and backups. |
 | Encryption/biometric/cloud/share-link TODOs | Complete | Explicit security roadmap in Settings. |
 | Five requested seed items | Complete | Drill, ring, bicycle, laptop, and storage tote. |
 | README/setup/test notes | Complete | Local setup and test flow documented. |

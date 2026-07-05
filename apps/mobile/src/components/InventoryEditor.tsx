@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { InventoryDraft, InventoryItem, ItemCondition } from '@proofvault/domain';
 
-interface InventoryEditorProps { item?:InventoryItem; onCancel():void; onSave(draft:InventoryDraft):Promise<void>; }
+interface InventoryEditorProps { item?:InventoryItem; locationSuggestions?:string[]; onCancel():void; onSave(draft:InventoryDraft):Promise<void>; }
 const conditions: ItemCondition[] = ['new','used','refurbished','unknown'];
 
-export function InventoryEditor({ item, onCancel, onSave }: InventoryEditorProps) {
+export function InventoryEditor({ item, locationSuggestions=[], onCancel, onSave }: InventoryEditorProps) {
   const [draft, setDraft] = useState<InventoryDraft>({ itemName:item?.itemName??'', category:item?.category??'', location:item?.location??'', make:item?.make??'', model:item?.model??'', serialNumber:item?.serialNumber??'', ownerMarking:item?.ownerMarking??'', markingLocation:item?.markingLocation??'', distinguishingFeatures:item?.distinguishingFeatures??'', userDescription:item?.userDescription??'', userEnteredValue:item?.userEnteredValue, condition:item?.condition??'unknown' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -17,6 +17,7 @@ export function InventoryEditor({ item, onCancel, onSave }: InventoryEditorProps
     <Field label="Item name *" value={draft.itemName} onChangeText={value=>set('itemName',value)} />
     <Field label="Category *" value={draft.category} onChangeText={value=>set('category',value)} />
     <Field label="Location *" value={draft.location} onChangeText={value=>set('location',value)} />
+    {locationSuggestions.length?<View style={styles.conditionRow}>{locationSuggestions.map(location=><Pressable accessibilityRole="button" key={location} style={styles.chip} onPress={()=>set('location',location)}><Text style={styles.chipText}>{location}</Text></Pressable>)}</View>:null}
     <View style={styles.row}><View style={styles.half}><Field label="Make" value={draft.make} onChangeText={value=>set('make',value)} /></View><View style={styles.half}><Field label="Model" value={draft.model} onChangeText={value=>set('model',value)} /></View></View>
     <Field label="Serial number" value={draft.serialNumber} onChangeText={value=>set('serialNumber',value)} autoCapitalize="characters" />
     <Field label="Owner-applied marking" value={draft.ownerMarking} onChangeText={value=>set('ownerMarking',value)} autoCapitalize="characters" />

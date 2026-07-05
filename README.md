@@ -56,3 +56,5 @@ Each affected item can carry incident-specific notes. Incident deletion requires
 Mobile inventory uses archive/restore instead of deletion. Archived items leave the active list but remain resolvable—with their valuations and evidence—in historical incident views and exports.
 
 Incident-specific camera/library photos attach to an affected item within one incident. They remain separate from general and damage/loss inventory evidence, persist through incident edits, and appear as a labeled count in shared packets.
+
+The mobile Settings tab contains reusable saved locations, App Lock, demo subscription controls, privacy guidance, and About information. Saved locations appear as one-tap suggestions in the item editor while free-text locations remain supported.
