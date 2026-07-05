@@ -9,6 +9,7 @@ import { InventoryEditor } from './src/components/InventoryEditor';
 import { chooseSupportingDocument } from './src/services/documentService';
 import { createIncident, listIncidents } from './src/db/incidentRepository';
 import { IncidentEditor } from './src/components/IncidentEditor';
+import { shareIncidentPacket } from './src/services/incidentExportService';
 
 const dbPromise = SQLite.openDatabaseAsync('proofvault.db');
 
@@ -89,6 +90,7 @@ export default function App() {
   }
   async function changeTier(nextTier: SubscriptionTier){const db=await dbPromise;await setSubscriptionTier(db,nextTier);setTier(nextTier);}
   async function saveIncident(draft:IncidentDraft){const db=await dbPromise;await createIncident(db,draft);setIncidents(await listIncidents(db));setIncidentEditorOpen(false);}
+  async function shareIncident(incident:Incident){try{const db=await dbPromise;const affectedItems:InventoryItem[]=[];for(const affected of incident.items){const item=items.find(candidate=>candidate.id===affected.itemId);if(item)affectedItems.push(await getLatestValuation(db,item));}await shareIncidentPacket(incident,affectedItems,tier);}catch(error){Alert.alert('Could not share packet',error instanceof Error?error.message:'Please try again.');}}
   const editor=editorOpen?<InventoryEditor item={editingItem} onCancel={()=>{setEditorOpen(false);setEditingItem(undefined);}} onSave={saveEditor}/>:null;
   const incidentEditor=incidentEditorOpen?<IncidentEditor inventory={items} onCancel={()=>setIncidentEditorOpen(false)} onSave={saveIncident}/>:null;
 
@@ -97,7 +99,7 @@ export default function App() {
   if (!selected&&screen==='incidents') return <><SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
     <View style={styles.navRow}><Pressable accessibilityRole="tab" accessibilityState={{selected:false}} style={styles.navButton} onPress={()=>setScreen('inventory')}><Text style={styles.secondaryButtonText}>Inventory</Text></Pressable><Pressable accessibilityRole="tab" accessibilityState={{selected:true}} style={[styles.navButton,styles.navSelected]}><Text style={styles.planTextSelected}>Incidents</Text></Pressable></View>
     <Text style={styles.brand}>PROOFVAULT</Text><Text style={styles.title}>Incidents</Text><Text style={styles.muted}>Record affected property while details are fresh.</Text><Pressable accessibilityRole="button" style={styles.button} onPress={()=>setIncidentEditorOpen(true)}><Text style={styles.buttonText}>Create incident</Text></Pressable>
-    {incidents.length?incidents.map(incident=><View key={incident.id} style={styles.card}><Text style={styles.cardTitle}>{incident.title}</Text><Text style={styles.muted}>{incident.type} · {incident.incidentDate}</Text><Text style={styles.value}>{incident.items.length} affected {incident.items.length===1?'item':'items'}</Text>{incident.items.map(affected=><Text key={affected.itemId} style={styles.documentName}>• {items.find(item=>item.id===affected.itemId)?.itemName??'Archived item'} — {affected.status}</Text>)}</View>):<View style={styles.card}><Text style={styles.muted}>No incidents recorded yet.</Text></View>}
+    {incidents.length?incidents.map(incident=><View key={incident.id} style={styles.card}><Text style={styles.cardTitle}>{incident.title}</Text><Text style={styles.muted}>{incident.type} · {incident.incidentDate}</Text><Text style={styles.value}>{incident.items.length} affected {incident.items.length===1?'item':'items'}</Text>{incident.items.map(affected=><Text key={affected.itemId} style={styles.documentName}>• {items.find(item=>item.id===affected.itemId)?.itemName??'Archived item'} — {affected.status}</Text>)}<Pressable accessibilityRole="button" style={styles.smallOutlineButton} onPress={()=>void shareIncident(incident)}><Text style={styles.secondaryButtonText}>Share incident packet</Text></Pressable>{tier==='free'?<Text style={styles.disclaimer}>Free exports omit marketplace links. Values, confidence, checked date, and the estimate disclaimer remain included.</Text>:null}</View>):<View style={styles.card}><Text style={styles.muted}>No incidents recorded yet.</Text></View>}
   </ScrollView></SafeAreaView>{incidentEditor}</>;
   if (!selected) return <><SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
     <View style={styles.navRow}><Pressable accessibilityRole="tab" accessibilityState={{selected:true}} style={[styles.navButton,styles.navSelected]}><Text style={styles.planTextSelected}>Inventory</Text></Pressable><Pressable accessibilityRole="tab" accessibilityState={{selected:false}} style={styles.navButton} onPress={()=>setScreen('incidents')}><Text style={styles.secondaryButtonText}>Incidents</Text></Pressable></View>

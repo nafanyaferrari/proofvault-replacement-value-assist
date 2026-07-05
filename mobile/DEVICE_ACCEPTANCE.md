@@ -20,10 +20,12 @@ Run these on one current iPhone and one current Android device before a store bu
 6. Attach a receipt, appraisal, warranty, and other PDF; restart and confirm each remains under the correct heading.
 7. Attach a damage/loss photo and confirm it does not appear in the general item-photo gallery.
 8. Create an incident with two affected items and different statuses; restart and confirm both relationships persist.
-9. Find comparable values, choose “Use this value,” restart, and confirm the estimate persists.
-10. Switch to Free, confirm automatic lookup is blocked and manual value editing still works; switch back to Premium.
-11. Enable App Lock. Background and reopen the app; confirm authentication is required.
-12. Cancel authentication and confirm inventory stays hidden, then unlock successfully.
-13. Confirm VoiceOver/TalkBack announces tabs, cards, form fields, evidence buttons, App Lock, and valuation actions.
+9. Share that incident in Premium and confirm the packet contains estimate, confidence, checked date, disclaimer, and comparable links.
+10. Switch to Free, share again, and confirm marketplace links are omitted while valuation evidence remains.
+11. Find comparable values, choose “Use this value,” restart, and confirm the estimate persists.
+12. Confirm manual value editing still works in Free, then switch back to Premium.
+13. Enable App Lock. Background and reopen the app; confirm authentication is required.
+14. Cancel authentication and confirm inventory stays hidden, then unlock successfully.
+15. Confirm VoiceOver/TalkBack announces tabs, cards, form fields, evidence buttons, App Lock, and valuation actions.
 
 Face ID requires an Expo development build rather than Expo Go. Camera, file persistence, and biometric behavior must be tested on physical devices; successful native bundles cannot prove hardware behavior.

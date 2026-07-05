@@ -46,3 +46,5 @@ Receipts, appraisals, warranties, and other supporting PDFs or images can be sel
 Damage or loss photos have a separate mobile capture category and gallery so they remain distinguishable from general inventory evidence.
 
 The mobile Incidents tab can create a dated incident, select affected inventory, assign stolen/damaged/destroyed/missing/recovered status per item, and persist the relationships transactionally in SQLite.
+
+Mobile incident packets are generated as local text files and shared through the native system sheet. They include values, estimate range, confidence, checked date, evidence counts, disclaimer, and premium-only comparable links.
