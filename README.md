@@ -50,3 +50,5 @@ The mobile Incidents tab can create a dated incident, select affected inventory,
 Mobile incident packets are generated as local text files and shared through the native system sheet. They include values, estimate range, confidence, checked date, evidence counts, disclaimer, and premium-only comparable links.
 
 Mobile incidents can be reopened and edited, including owner contact details, police agency/case number, and insurance company/claim number. A schema migration adds these fields to existing local databases.
+
+Each affected item can carry incident-specific notes. Incident deletion requires destructive confirmation and removes only the incident and its link rows, never the underlying inventory or evidence.

@@ -24,7 +24,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Owner-applied markings first-class | Complete (web and mobile core) | Mobile stores marking text, location, distinguishing features, and separately labeled marking photos. |
 | Mock AI description service/UI | Complete | Typed mock service, review UI, missing-field guidance, and explicit verification labeling. |
 | Documentation completeness score | Complete | 0–100 score and plain-language feedback. |
-| Incident-specific notes | Complete | Per affected item. |
+| Incident-specific notes | Complete (web and mobile) | Stored per affected item and included in packets. |
 | Incident-specific photos | Complete (web) | Per affected item with local size safeguards and export rendering. |
 | Export owner/contact placeholders | Complete | Name, phone, email, and mailing address in incident forms and exports. |
 | Export full evidence rendering | Complete (web) | Labeled item, serial, marking, incident, damage, receipt, appraisal, warranty, and other evidence groups. |
@@ -35,7 +35,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | README/setup/test notes | Complete | Local setup and test flow documented. |
 | No paid services | Complete | Static Vercel hosting and local browser persistence. |
 | Original acceptance flow | Complete (web and mobile core) | Mobile supports inventory, evidence, scoring, gating, valuation persistence, incident creation, native packet sharing, and app lock. |
-| Safe lifecycle controls | Complete (web) | Items archive without breaking incident evidence; incidents delete only after confirmation. |
+| Safe lifecycle controls | Complete (web); mobile incident deletion | Mobile incident deletion requires confirmation and preserves inventory/evidence; mobile inventory archiving remains. |
 | Dashboard completion guidance | Complete | Prioritizes weak records and gives the next documentation action. |
 | Automated browser acceptance run | Environment-blocked | Required in-app browser skill/runtime is missing from this session; production build and nine logic/export tests pass. |
 | Printable large-evidence pagination | Complete | Print-specific page margins and break rules keep headings, evidence groups, and figures together without trapping a whole item on one page. |

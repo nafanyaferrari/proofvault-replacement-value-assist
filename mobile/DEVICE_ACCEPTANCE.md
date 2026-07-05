@@ -21,12 +21,14 @@ Run these on one current iPhone and one current Android device before a store bu
 7. Attach a damage/loss photo and confirm it does not appear in the general item-photo gallery.
 8. Create an incident with two affected items and different statuses; restart and confirm both relationships persist.
 9. Edit that incident with owner, police case, and insurance claim details; reopen it and confirm changes persist.
-10. Share in Premium and confirm the packet contains contact/claim details, estimate, confidence, checked date, disclaimer, and comparable links.
-11. Switch to Free, share again, and confirm marketplace links are omitted while valuation evidence remains.
-12. Find comparable values, choose “Use this value,” restart, and confirm the estimate persists.
-13. Confirm manual value editing still works in Free, then switch back to Premium.
-14. Enable App Lock. Background and reopen the app; confirm authentication is required.
-15. Cancel authentication and confirm inventory stays hidden, then unlock successfully.
-16. Confirm VoiceOver/TalkBack announces tabs, cards, form fields, evidence buttons, App Lock, and valuation actions.
+10. Add different notes to both affected items and confirm the shared packet keeps each note with the correct item.
+11. Share in Premium and confirm the packet contains contact/claim details, estimate, confidence, checked date, disclaimer, and comparable links.
+12. Delete a test incident, confirm the warning, and verify its inventory items and evidence still exist.
+13. Switch to Free, share again, and confirm marketplace links are omitted while valuation evidence remains.
+14. Find comparable values, choose “Use this value,” restart, and confirm the estimate persists.
+15. Confirm manual value editing still works in Free, then switch back to Premium.
+16. Enable App Lock. Background and reopen the app; confirm authentication is required.
+17. Cancel authentication and confirm inventory stays hidden, then unlock successfully.
+18. Confirm VoiceOver/TalkBack announces tabs, cards, form fields, evidence buttons, App Lock, and valuation actions.
 
 Face ID requires an Expo development build rather than Expo Go. Camera, file persistence, and biometric behavior must be tested on physical devices; successful native bundles cannot prove hardware behavior.
