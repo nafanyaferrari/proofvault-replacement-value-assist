@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import * as SQLite from 'expo-sqlite';
-import { aiDescriptionService, completenessScore, money, valuationService, VALUATION_DISCLAIMER, type AttachmentType, type Incident, type IncidentDraft, type InventoryDraft, type InventoryItem, type LocationRecord, type SubscriptionTier, type ValuationResult } from '@proofvault/domain';
+import { aiDescriptionService, completenessScore, itemIntakeService, money, valuationService, VALUATION_DISCLAIMER, type AttachmentType, type Incident, type IncidentDraft, type InventoryDraft, type InventoryItem, type LocationRecord, type SubscriptionTier, type ValuationResult } from '@proofvault/domain';
 import { addLocation, archiveInventoryItem, getLatestValuation, getSubscriptionTier, initializeDatabase, listArchivedInventory, listInventory, listLocations, restoreInventoryItem, saveAiDescription, saveInventoryItem, saveItemAttachment, saveValuation, setSubscriptionTier } from './src/db/inventoryRepository';
-import { chooseItemPhoto, takeItemPhoto } from './src/services/photoService';
+import { chooseItemPhoto, takeItemPhoto, type StoredPhoto } from './src/services/photoService';
 import { authenticateForVault, canUseAppLock, isAppLockEnabled, setAppLockEnabled } from './src/services/appLockService';
 import { InventoryEditor } from './src/components/InventoryEditor';
 import { chooseSupportingDocument } from './src/services/documentService';
@@ -37,6 +37,10 @@ export default function App() {
   const [inventoryQuery,setInventoryQuery]=useState('');
   const [describing,setDescribing]=useState(false);
   const [aiMissingFields,setAiMissingFields]=useState<string[]>([]);
+  const [intakeDraft,setIntakeDraft]=useState<InventoryDraft>();
+  const [intakePhoto,setIntakePhoto]=useState<StoredPhoto>();
+  const [intakeValuation,setIntakeValuation]=useState<ValuationResult>();
+  const [intakeBusy,setIntakeBusy]=useState(false);
 
   const load = useCallback(async () => {
     const db = await dbPromise;
@@ -93,11 +97,17 @@ export default function App() {
   async function saveEditor(draft: InventoryDraft) {
     const db=await dbPromise;
     const savedId=await saveInventoryItem(db,draft,editingItem?.id);
+    if(!editingItem&&intakePhoto){
+      await saveItemAttachment(db,savedId,'item',intakePhoto.uri,intakePhoto.mimeType,intakePhoto.originalName);
+      await saveAiDescription(db,savedId,draft.itemName,draft.userDescription);
+      if(intakeValuation)await saveValuation(db,savedId,intakeValuation);
+    }
     const [updatedItems,archived]=await Promise.all([listInventory(db),listArchivedInventory(db)]);
     setItems(updatedItems);setArchivedItems(archived);
     if(selected?.id===savedId){const updated=updatedItems.find(item=>item.id===savedId);if(updated)setSelected(await getLatestValuation(db,updated));}
-    setEditorOpen(false);setEditingItem(undefined);
+    setEditorOpen(false);setEditingItem(undefined);setIntakeDraft(undefined);setIntakePhoto(undefined);setIntakeValuation(undefined);
   }
+  async function quickPhotoIntake(){setIntakeBusy(true);try{const photo=await takeItemPhoto();if(!photo)return;const result=await itemIntakeService.analyze({photoUri:photo.uri,location:locations[0]?.name},tier==='premium');setIntakePhoto(photo);setIntakeDraft(result.draft);setIntakeValuation(result.valuation);setEditingItem(undefined);setEditorOpen(true);}catch(error){Alert.alert('Could not analyze photo',error instanceof Error?error.message:'Please try again.');}finally{setIntakeBusy(false);}}
   async function changeTier(nextTier: SubscriptionTier){const db=await dbPromise;await setSubscriptionTier(db,nextTier);setTier(nextTier);}
   async function createLocation(name:string){const db=await dbPromise;await addLocation(db,name);setLocations(await listLocations(db));}
   async function exportBackup(){try{await shareDatabaseBackup(await dbPromise);}catch(error){Alert.alert('Could not export backup',error instanceof Error?error.message:'Please try again.');}}
@@ -111,7 +121,7 @@ export default function App() {
   async function deleteIncident(incidentId:string){try{const db=await dbPromise;await deleteIncidentRecord(db,incidentId);setIncidents(await listIncidents(db));}catch{Alert.alert('Could not delete incident','Your incident was not changed. Please try again.');}}
   async function addIncidentPhoto(source:'camera'|'library',incidentId:string,itemId:string){try{const photo=source==='camera'?await takeItemPhoto():await chooseItemPhoto();if(!photo)return;const db=await dbPromise;await saveIncidentPhoto(db,incidentId,itemId,photo.uri,photo.mimeType,photo.originalName);setIncidents(await listIncidents(db));}catch(error){Alert.alert('Could not add incident photo',error instanceof Error?error.message:'Please try again.');}}
   function confirmDeleteIncident(incident:Incident){Alert.alert('Delete incident?',`Delete “${incident.title}”? Inventory items and their evidence will not be deleted.`,[{text:'Cancel',style:'cancel'},{text:'Delete incident',style:'destructive',onPress:()=>void deleteIncident(incident.id)}]);}
-  const editor=editorOpen?<InventoryEditor item={editingItem} locationSuggestions={locations.map(location=>location.name)} onCancel={()=>{setEditorOpen(false);setEditingItem(undefined);}} onSave={saveEditor}/>:null;
+  const editor=editorOpen?<InventoryEditor item={editingItem} initialDraft={intakeDraft} assisted={Boolean(intakeDraft)} locationSuggestions={locations.map(location=>location.name)} onCancel={()=>{setEditorOpen(false);setEditingItem(undefined);setIntakeDraft(undefined);setIntakePhoto(undefined);setIntakeValuation(undefined);}} onSave={saveEditor}/>:null;
   const incidentEditor=incidentEditorOpen?<IncidentEditor incident={editingIncident} inventory={editingIncident?[...items,...archivedItems]:items} onCancel={()=>{setIncidentEditorOpen(false);setEditingIncident(undefined);}} onSave={saveIncident}/>:null;
   const normalizedQuery=inventoryQuery.trim().toLowerCase();
   const visibleItems=normalizedQuery?items.filter(item=>[item.itemName,item.category,item.location,item.room,item.make,item.model,item.serialNumber,item.barcode,item.ownerMarking].some(value=>value?.toLowerCase().includes(normalizedQuery))):items;
@@ -133,7 +143,8 @@ export default function App() {
     <View style={styles.metricRow}><View style={styles.metric}><Text style={styles.metricValue}>{items.length}</Text><Text style={styles.documentName}>Active items</Text></View><View style={styles.metric}><Text style={styles.metricValue}>{identifiableItems}</Text><Text style={styles.documentName}>Identifiable</Text></View><View style={styles.metric}><Text style={styles.metricValue}>{valuedItems}</Text><Text style={styles.documentName}>With values</Text></View></View>
     {weakItems.length?<View style={styles.card}><Text style={styles.cardTitle}>Records needing attention</Text><Text style={styles.muted}>Add identity, photos, values, or documentation before a loss occurs.</Text>{weakItems.slice(0,3).map(record=><Pressable accessibilityRole="button" key={record.item.id} style={styles.archivedRow} onPress={()=>void openItem(record.item)}><View style={styles.settingCopy}><Text style={styles.value}>{record.item.itemName}</Text><Text style={styles.documentName}>{record.score}% · {record.feedback}</Text></View></Pressable>)}</View>:null}
     <TextInput accessibilityLabel="Search inventory" value={inventoryQuery} onChangeText={setInventoryQuery} placeholder="Search name, serial, barcode, location…" placeholderTextColor="#60756e" style={styles.search}/>
-    <Pressable accessibilityRole="button" style={styles.button} onPress={()=>{setEditingItem(undefined);setEditorOpen(true);}}><Text style={styles.buttonText}>Add inventory item</Text></Pressable>
+    <View style={styles.card}><Text style={styles.cardTitle}>Fast photo intake</Text><Text style={styles.muted}>Take one overview photo. The demo prefills a description, make, model, serial candidate, and—on Premium—an approximate value. Review once, then save.</Text><Pressable accessibilityRole="button" style={styles.button} disabled={intakeBusy} onPress={()=>void quickPhotoIntake()}><Text style={styles.buttonText}>{intakeBusy?'Analyzing photo…':'Photograph and prefill item'}</Text></Pressable><Text style={styles.disclaimer}>Demo mode uses a simulated vision result and does not inspect image pixels yet. Verify all fields, especially serial numbers.</Text></View>
+    <Pressable accessibilityRole="button" style={styles.smallOutlineButton} onPress={()=>{setEditingItem(undefined);setIntakeDraft(undefined);setEditorOpen(true);}}><Text style={styles.secondaryButtonText}>Enter item manually</Text></Pressable>
     {visibleItems.map(item => <Pressable accessibilityRole="button" key={item.id} style={styles.card} onPress={() => void openItem(item)}><Text style={styles.cardTitle}>{item.itemName}</Text><Text style={styles.muted}>{item.category} · {item.location}</Text><Text style={styles.value}>{money(item.userEnteredValue)}</Text></Pressable>)}
     {normalizedQuery&&!visibleItems.length?<View style={styles.card}><Text style={styles.muted}>No active inventory matches “{inventoryQuery.trim()}”.</Text></View>:null}
     {archivedItems.length?<View style={styles.card}><Text style={styles.cardTitle}>Archived inventory</Text><Text style={styles.muted}>Archived items remain available to historical incidents and exports.</Text>{archivedItems.map(item=><View key={item.id} style={styles.archivedRow}><View style={styles.settingCopy}><Text style={styles.value}>{item.itemName}</Text><Text style={styles.documentName}>Archived {item.archivedAt?new Date(item.archivedAt).toLocaleDateString():''}</Text></View><Pressable accessibilityRole="button" style={styles.restoreButton} onPress={()=>void restoreItem(item.id)}><Text style={styles.secondaryButtonText}>Restore</Text></Pressable></View>)}</View>:null}

@@ -2,6 +2,12 @@
 
 Status as of 2026-07-05. The repository contains a deployed React/Vite web MVP plus an Expo SDK 56 mobile MVP that compiles into Android and iOS Hermes bundles.
 
+## Photo-first bulk intake
+
+- Mobile inventory offers a one-tap camera-first path that prefills an editable item draft, retains the overview photo, saves an AI description, and can attach a Premium mock valuation in the same save operation.
+- The no-cloud demo is deliberately labeled simulated and does not claim to inspect pixels. The provider-neutral `ItemIntakeAnalyzer` is ready for a future secure backend vision/OCR adapter; API keys must never live in the app.
+- Make, model, and serial candidates stay editable. Serial OCR is marked low confidence and requires user verification.
+
 | Original requirement | Status | Notes |
 |---|---|---|
 | Expo + React Native + TypeScript | Complete (MVP implementation) | SDK 56 app compiles into both Android and iOS Hermes bundles. |
