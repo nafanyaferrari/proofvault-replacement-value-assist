@@ -14,6 +14,12 @@ export const loadTier=():SubscriptionTier=>(localStorage.getItem('pv-tier') as S
 export const saveTier=(tier:SubscriptionTier)=>localStorage.setItem('pv-tier',tier);
 export const loadIncidents=():Incident[]=>{try{return JSON.parse(localStorage.getItem('pv-incidents')||'null')||[seedIncident]}catch{return[seedIncident]}};
 export const saveIncidents=(incidents:Incident[])=>localStorage.setItem('pv-incidents',JSON.stringify(incidents));
-const seedLocations:LocationRecord[]=[{id:'loc-home',name:'Home',notes:'Primary residence',createdAt:now},{id:'loc-garage',name:'Garage',createdAt:now},{id:'loc-storage',name:'Storage unit',createdAt:now}];
+export const seedLocations:LocationRecord[]=[{id:'loc-home',name:'Home',notes:'Primary residence',createdAt:now},{id:'loc-garage',name:'Garage',createdAt:now},{id:'loc-storage',name:'Storage unit',createdAt:now}];
 export const loadLocations=():LocationRecord[]=>{try{return JSON.parse(localStorage.getItem('pv-locations')||'null')||seedLocations}catch{return seedLocations}};
 export const saveLocations=(locations:LocationRecord[])=>localStorage.setItem('pv-locations',JSON.stringify(locations));
+export const replaceLocalData=(items:InventoryItem[],incidents:Incident[],locations:LocationRecord[],tier:SubscriptionTier)=>{
+ const next=[['pv-items',JSON.stringify(items)],['pv-incidents',JSON.stringify(incidents)],['pv-locations',JSON.stringify(locations)],['pv-tier',tier]] as const;
+ const previous=next.map(([key])=>({key,value:localStorage.getItem(key),hadValue:localStorage.getItem(key)!==null}));
+ try{next.forEach(([key,value])=>localStorage.setItem(key,value))}
+ catch(error){previous.forEach(({key,value,hadValue})=>{try{hadValue?localStorage.setItem(key,value??''):localStorage.removeItem(key)}catch{}});throw error}
+};

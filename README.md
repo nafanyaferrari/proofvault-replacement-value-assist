@@ -11,14 +11,23 @@ npm run dev
 
 ## Test the feature
 
-1. Open Inventory → Milwaukee M18 Brushless Drill.
-2. In free mode, confirm lookup is locked and add a manual value.
-3. Open Settings and switch the demo to Premium.
-4. Return to the drill and choose **Find Comparable Values**.
-5. Select a used/refurbished comparable value.
-6. Open Incident and generate the packet. It includes the estimate, comparable links, checked date, confidence, and disclaimer.
+1. Open Inventory and try **Photograph & prefill** with any item photo. The web demo creates a reviewable item draft from a mocked analysis result.
+2. Review the prefilled fields, then use **Save & add another** to return to the fast intake screen for the next item.
+3. In free mode, confirm automatic lookup is locked while manual value entry remains available.
+4. Open Settings and switch the demo to Premium.
+5. Try **Photograph & prefill** again or open the Milwaukee M18 Brushless Drill and choose **Find Comparable Values**.
+6. Save or select a comparable value.
+7. Open Incident and generate the packet. It includes the estimate, comparable links, checked date, confidence, and disclaimer.
 
 Data is stored only in browser `localStorage`. Marketplace results are mocked and adapters are defined for a future secure backend; API keys must never be put in the client.
+
+Photo-first intake is also mocked in the no-cloud demo. It uses one fixed simulated recognition result, so uploaded images are not truly analyzed yet. This proves the intended low-effort flow—photo, AI-prefilled draft, user verification, optional premium estimate—without sending images to a live AI service.
+
+For the web demo, selected intake photos are resized in the browser before being saved to `localStorage` so the bulk-entry flow can tolerate more items. Settings shows an approximate browser storage meter and the app warns instead of falsely saving when browser storage is full. The future mobile app stores evidence files in app-private storage rather than browser storage.
+
+Settings includes **Reset demo data** for walkthroughs and QA. Download a backup first if you want to keep the current browser records.
+
+Before approving a deploy, run the web checklist in `WEB_PREDEPLOY_QA.md`.
 
 
 ## Deploy

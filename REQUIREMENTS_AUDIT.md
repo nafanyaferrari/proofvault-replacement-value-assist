@@ -1,11 +1,12 @@
 # ProofVault MVP requirements audit
 
-Status as of 2026-07-05. The repository contains a deployed React/Vite web MVP plus an Expo SDK 56 mobile MVP that compiles into Android and iOS Hermes bundles.
+Status as of 2026-07-13. The repository contains a deployed React/Vite web MVP plus an Expo SDK 56 mobile MVP that compiles into Android and iOS Hermes bundles.
 
 ## Photo-first bulk intake
 
-- Mobile inventory offers a one-tap camera-first path that prefills an editable item draft, retains the overview photo, saves an AI description, and can attach a Premium mock valuation in the same save operation.
-- The no-cloud demo is deliberately labeled simulated and does not claim to inspect pixels. The provider-neutral `ItemIntakeAnalyzer` is ready for a future secure backend vision/OCR adapter; API keys must never live in the app.
+- Web and mobile inventory both offer a photo-first path that prefills an editable item draft, retains the overview photo, saves an AI description, and can attach a Premium mock valuation in the same save operation.
+- The Vercel demo lets a user choose or take an overview photo from the Inventory screen, review the generated draft, and save it as a normal local item.
+- The no-cloud demo is deliberately labeled simulated and currently uses one fixed recognition result rather than inspecting image pixels. The provider-neutral `ItemIntakeAnalyzer` is ready for a future secure backend vision/OCR adapter; API keys must never live in the app.
 - Make, model, and serial candidates stay editable. Serial OCR is marked low confidence and requires user verification.
 
 | Original requirement | Status | Notes |
@@ -24,6 +25,8 @@ Status as of 2026-07-05. The repository contains a deployed React/Vite web MVP p
 | Incident Mode / Detail | Complete (web and mobile core) | Mobile creates and edits incidents, owner/claim details, affected inventory, and per-item statuses. |
 | Export/Share Packet | Complete (web and mobile text) | Mobile shares a local incident packet with valuation evidence and premium-gated comparable links; web additionally supports CSV and printable PDF. |
 | Settings/About | Complete (web and mobile core) | Mobile has locations, database backup/restore, plan controls, App Lock, privacy, and About. |
+| Demo reset for QA | Complete (web) | Settings can reset browser inventory, incidents, locations, and plan status to the original demo records after confirmation. |
+| Browser storage safeguards | Complete (web) | Fast-intake photos are compressed, Settings shows approximate browser storage use, item/incident changes are not shown as saved if localStorage rejects them, and multi-key restore/reset rolls back after storage failure. |
 | All inventory fields | Complete (web and mobile core model) | Mobile add/edit covers identity, barcode, purchase data, marking details, condition/status, location/room, values, description, and notes. |
 | All evidence categories | Complete (web and mobile) | Mobile supports labeled general, serial, marking, damage/loss, receipt, appraisal, warranty, and other evidence. |
 | Native camera/library picker | Complete (mobile implementation) | Captures or selects images and copies them to app-private storage; physical-device acceptance remains. |
@@ -43,7 +46,7 @@ Status as of 2026-07-05. The repository contains a deployed React/Vite web MVP p
 | Original acceptance flow | Complete (web and mobile core) | Mobile supports inventory, evidence, scoring, gating, valuation persistence, incident creation, native packet sharing, and app lock. |
 | Safe lifecycle controls | Complete (web and mobile) | Mobile archive/restore preserves incident references and evidence; incident deletion requires confirmation. |
 | Dashboard completion guidance | Complete | Prioritizes weak records and gives the next documentation action. |
-| Automated browser acceptance run | Environment-blocked | Required in-app browser skill/runtime is missing from this session; production build and nine logic/export tests pass. |
+| Automated browser acceptance run | Environment-blocked | Required in-app browser skill/runtime is missing from this session; production build and thirteen logic/export tests pass. |
 | Printable large-evidence pagination | Complete | Print-specific page margins and break rules keep headings, evidence groups, and figures together without trapping a whole item on one page. |
 | Mobile SQLite implementation | Complete (MVP schema) | Inventory, incidents, valuations, settings, locations, attachments, migrations, and lifecycle controls are live. |
 | Mobile database backup integrity | Complete (database-only) | Exact SQLite export; restore validates header, integrity, and required tables. Attachment binaries are not embedded. |
