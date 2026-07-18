@@ -1,7 +1,7 @@
 import type { Confidence, InventoryDraft, ValuationResult } from './types';
 import type { ItemIntakeAnalyzer, ItemIntakeInput, ItemIntakeResult } from './itemIntakeService';
 
-export type IntakeBackendProvider = 'openai-vision' | 'document-ocr' | 'marketplace-valuations' | 'manual-review' | 'mock';
+export type IntakeBackendProvider = 'gemini-vision' | 'openai-vision' | 'document-ocr' | 'marketplace-valuations' | 'manual-review' | 'mock';
 
 export interface IntakePhotoReference {
   uri: string;

@@ -9,6 +9,7 @@
     "browser:cdp": "node scripts/launch-agent-browser-cdp.cjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.3",
     "@vitejs/plugin-react": "latest",
     "lucide-react": "latest",
     "react": "19.2.3",

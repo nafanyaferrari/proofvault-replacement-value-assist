@@ -4,6 +4,7 @@ import { InventoryItem, ItemCondition, ItemStatus, LocationRecord } from '../typ
 import { uid } from '../lib/utils';
 import { EvidenceUploader } from './EvidenceUploader';
 import { aiDescriptionService, AiDescriptionResult } from '../services/aiDescriptionService';
+import { evidenceStorageService, EvidenceKind } from '../services/evidenceStorageService';
 
 interface ItemFormProps {
   item?: InventoryItem;
@@ -29,12 +30,14 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
   const [error, setError] = useState('');
   const [aiResult,setAiResult]=useState<AiDescriptionResult>();
   const [aiLoading,setAiLoading]=useState(false);
+  const [saving,setSaving]=useState(false);
   const isEditing = Boolean(item && !assisted);
   const set = <K extends keyof InventoryItem>(key: K, value: InventoryItem[K]) => setDraft(current => ({...current, [key]: value}));
   const text = (key: keyof InventoryItem) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => set(key, event.target.value as never);
   const number = (key: 'purchasePrice' | 'userEnteredValue') => (event: ChangeEvent<HTMLInputElement>) => set(key, event.target.value ? Number(event.target.value) : undefined);
 
   const evidenceKeys: Array<'photos'|'serialPhotos'|'markingPhotos'|'receiptFiles'|'appraisalFiles'|'warrantyFiles'|'damagePhotos'|'otherFiles'> = ['photos','serialPhotos','markingPhotos','receiptFiles','appraisalFiles','warrantyFiles','damagePhotos','otherFiles'];
+  const evidenceKinds: Record<typeof evidenceKeys[number],EvidenceKind> = { photos:'item', serialPhotos:'serial', markingPhotos:'marking', receiptFiles:'receipt', appraisalFiles:'appraisal', warrantyFiles:'warranty', damagePhotos:'damage', otherFiles:'other' };
   const setEvidence = (key:typeof evidenceKeys[number], values:string[]) => {
     const total=evidenceKeys.reduce((sum,current)=>sum+(current===key?values:(draft[current]??[])).reduce((size,value)=>size+value.length,0),0);
     if(total>4_000_000){setError('All attachments together exceed the safe browser-storage limit. Remove files or use smaller images.');return false}
@@ -48,14 +51,31 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
     const hasAiAssist = Boolean(draft.aiDescription || draft.aiSuggestedTitle);
     return {...draft, itemName:draft.itemName.trim(), location:draft.location.trim(), aiFieldsReviewedAt:hasAiAssist ? draft.aiFieldsReviewedAt ?? now : undefined, updatedAt:now};
   };
-  const submit = (event: FormEvent) => {
+  const uploadEmbeddedEvidence = async (item: InventoryItem) => {
+    if (!(await evidenceStorageService.canUseCloudStorage())) return item;
+    const next = { ...item };
+    for (const key of evidenceKeys) {
+      const values = next[key] ?? [];
+      next[key] = await Promise.all(values.map(value => evidenceStorageService.uploadDataUrl(value, next.id, evidenceKinds[key]))) as never;
+    }
+    return next;
+  };
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     const next = validatedDraft();
-    if (next) onSave(next);
+    if (!next) return;
+    setSaving(true);
+    try { onSave(await uploadEmbeddedEvidence(next)); }
+    catch(reason){ setError(reason instanceof Error?reason.message:'Could not save evidence to cloud storage.'); }
+    finally{ setSaving(false); }
   };
-  const saveAndAddAnother = () => {
+  const saveAndAddAnother = async () => {
     const next = validatedDraft();
-    if (next) onSaveAndAddAnother?.(next);
+    if (!next) return;
+    setSaving(true);
+    try { onSaveAndAddAnother?.(await uploadEmbeddedEvidence(next)); }
+    catch(reason){ setError(reason instanceof Error?reason.message:'Could not save evidence to cloud storage.'); }
+    finally{ setSaving(false); }
   };
 
   return <form className="itemForm" onSubmit={submit}>
@@ -70,7 +90,7 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
       <section className="panel formSection"><h2>Value & notes</h2><div className="fields two"><label>Purchase date<input type="date" value={draft.purchaseDate??''} onChange={text('purchaseDate')}/></label><label>Purchase price <input type="number" min="0" step="0.01" value={draft.purchasePrice ?? ''} onChange={number('purchasePrice')}/></label><label>User-entered replacement value <input type="number" min="0" step="0.01" value={draft.userEnteredValue ?? ''} onChange={number('userEnteredValue')}/></label></div><label>Notes <textarea value={draft.notes ?? ''} onChange={text('notes')}/></label></section>
       <section className="panel formSection aiSection"><div className="aiHeading"><div><p className="eyebrow green">SUGGESTED BY AI — PLEASE VERIFY</p><h2>AI description assistant</h2></div><button type="button" onClick={suggest} disabled={aiLoading}><Sparkles/>{aiLoading?'Reviewing…':'Generate suggestion'}</button></div><p className="helper">Mocked for this MVP. AI output is never treated as a confirmed identifier.</p>{aiResult&&<div className="aiResult"><b>{aiResult.suggestedTitle}</b><p>{aiResult.suggestedDescription}</p>{aiResult.visibleIdentifiers.map(identifier=><small key={identifier}>{identifier}</small>)}{aiResult.missingRecommendedFields.length>0&&<small>Recommended: add {aiResult.missingRecommendedFields.join(', ')}.</small>}<div><button type="button" onClick={()=>{set('itemName',aiResult.suggestedTitle);set('userDescription',aiResult.suggestedDescription)}}>Use title & description</button></div></div>}</section>
     </div>
-    <section className="panel formSection documentationSection"><h2>Documentation & evidence</h2><p className="helper">Stored only in this browser. Keep the combined attachments under 4 MB; backup regularly.</p><div className="evidenceGrid"><EvidenceUploader label="Item photos" hint="Overall views and unique details" values={draft.photos} max={5} onChange={values=>setEvidence('photos',values)} onError={setError}/><EvidenceUploader label="Serial-number photos" hint="Clear, readable identifier photos" values={draft.serialPhotos} onChange={values=>setEvidence('serialPhotos',values)} onError={setError}/><EvidenceUploader label="Marking photos" hint="Owner-applied marking and its location" values={draft.markingPhotos} onChange={values=>setEvidence('markingPhotos',values)} onError={setError}/><EvidenceUploader label="Receipts" hint="Images or PDF purchase records" values={draft.receiptFiles} accept="image/*,.pdf,application/pdf" onChange={values=>setEvidence('receiptFiles',values)} onError={setError}/><EvidenceUploader label="Appraisals" hint="Images or PDF appraisal records" values={draft.appraisalFiles} accept="image/*,.pdf,application/pdf" onChange={values=>setEvidence('appraisalFiles',values)} onError={setError}/><EvidenceUploader label="Warranty files" hint="Images or PDF warranty records" values={draft.warrantyFiles} accept="image/*,.pdf,application/pdf" onChange={values=>setEvidence('warrantyFiles',values)} onError={setError}/><EvidenceUploader label="Damage / loss photos" hint="Condition after an incident" values={draft.damagePhotos??[]} onChange={values=>setEvidence('damagePhotos',values)} onError={setError}/><EvidenceUploader label="Other documentation" hint="Additional supporting evidence" values={draft.otherFiles??[]} accept="image/*,.pdf,application/pdf" onChange={values=>setEvidence('otherFiles',values)} onError={setError}/></div></section>
-    <div className="formActions"><button type="button" onClick={onCancel}>Cancel</button>{!isEditing&&onSaveAndAddAnother?<button type="button" onClick={saveAndAddAnother}><Save/> Save & add another</button>:null}<button className="primary" type="submit"><Save/> Save item</button></div>
+    <section className="panel formSection documentationSection"><h2>Documentation & evidence</h2><p className="helper">If you are signed in with Supabase, new evidence uploads to private cloud storage. Otherwise it stays in this browser as demo/local data.</p><div className="evidenceGrid"><EvidenceUploader label="Item photos" hint="Overall views and unique details" itemId={draft.id} kind="item" values={draft.photos} max={5} onChange={values=>setEvidence('photos',values)} onError={setError}/><EvidenceUploader label="Serial-number photos" hint="Clear, readable identifier photos" itemId={draft.id} kind="serial" values={draft.serialPhotos} onChange={values=>setEvidence('serialPhotos',values)} onError={setError}/><EvidenceUploader label="Marking photos" hint="Owner-applied marking and its location" itemId={draft.id} kind="marking" values={draft.markingPhotos} onChange={values=>setEvidence('markingPhotos',values)} onError={setError}/><EvidenceUploader label="Receipts" hint="Images or PDF purchase records" itemId={draft.id} kind="receipt" values={draft.receiptFiles} accept="image/*,.pdf,application/pdf" onChange={values=>setEvidence('receiptFiles',values)} onError={setError}/><EvidenceUploader label="Appraisals" hint="Images or PDF appraisal records" itemId={draft.id} kind="appraisal" values={draft.appraisalFiles} accept="image/*,.pdf,application/pdf" onChange={values=>setEvidence('appraisalFiles',values)} onError={setError}/><EvidenceUploader label="Warranty files" hint="Images or PDF warranty records" itemId={draft.id} kind="warranty" values={draft.warrantyFiles} accept="image/*,.pdf,application/pdf" onChange={values=>setEvidence('warrantyFiles',values)} onError={setError}/><EvidenceUploader label="Damage / loss photos" hint="Condition after an incident" itemId={draft.id} kind="damage" values={draft.damagePhotos??[]} onChange={values=>setEvidence('damagePhotos',values)} onError={setError}/><EvidenceUploader label="Other documentation" hint="Additional supporting evidence" itemId={draft.id} kind="other" values={draft.otherFiles??[]} accept="image/*,.pdf,application/pdf" onChange={values=>setEvidence('otherFiles',values)} onError={setError}/></div></section>
+    <div className="formActions"><button type="button" onClick={onCancel}>Cancel</button>{!isEditing&&onSaveAndAddAnother?<button type="button" disabled={saving} onClick={()=>void saveAndAddAnother()}><Save/> {saving?'Saving…':'Save & add another'}</button>:null}<button className="primary" type="submit" disabled={saving}><Save/> {saving?'Saving…':'Save item'}</button></div>
   </form>;
 }
