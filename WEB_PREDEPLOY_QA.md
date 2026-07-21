@@ -2,36 +2,37 @@
 
 Run this against the local or preview web build before approving a production deploy.
 
-## Fast intake
+## Fast intake and bulk review
 
-1. Open Inventory.
-2. Set a batch location and room/area in the fast-intake card.
-3. Tab to **Photograph & prefill** and confirm Enter/Space opens the file picker.
-4. Choose a normal item photo.
-5. Confirm the item form opens as a new item, not an edit.
-6. Confirm the batch location and room/area are prefilled.
-7. Refresh the page and confirm the batch location and room/area are remembered locally.
-8. Confirm the AI-prefilled warning is visible.
-9. Confirm the warning says no-cloud demo mode uses a fixed simulated recognition result.
-10. Confirm any intake-service warnings appear in the review card before saving.
-11. Confirm photo, description, make/model, and serial candidate are editable.
-12. Save with **Save & add another** and confirm the app returns to Inventory.
-13. Confirm the **Bulk review queue** shows follow-up items and lists all remaining checks for each queued item when records still need verification, value, photo, or supporting document evidence.
-14. Use **Review next** and confirm the top queued item opens directly in edit mode.
-15. Save the reviewed item and confirm the AI-prefill review flag clears, while any remaining serial/value/photo/document flags stay visible.
-16. If an item has a serial candidate, enter a confirmed serial from the quick-check list and confirm the serial verification flag clears.
-17. If an item has no manual or assisted value, enter a quick manual value from the quick-check list and confirm the value flag clears.
-18. Open a queued item and confirm the item detail screen shows the same quick-check list with an edit action.
-19. Type into a quick serial/value field, switch to another item, and confirm the quick-entry field is cleared so stale text cannot be saved to the wrong item.
-20. When all active items are complete enough, confirm the queue shows a clear-backlog confirmation instead of disappearing silently.
-21. From Overview, click the **Need quick review** metric and confirm it opens Inventory with the review queue visible.
+1. From the signed-out screen, choose **Open local demo** and confirm it explains the demo is separate from signed-in accounts.
+2. From Start Here, confirm **Walk around and add many photos** is the primary action.
+3. In Premium mode, tab to **Add many photos** and confirm Enter/Space opens a multi-file picker.
+4. Choose two or more item photos, using one clear overview photo per item. Confirm the picker accepts no more than the documented 12-item browser batch.
+5. Confirm successful drafts are saved as they are created and the bulk review screen opens with item name, make, model, Serial Number (SN), location, and value first.
+6. Confirm AI-filled serial numbers are presented as candidates that should be verified.
+7. Save one draft with **Save this item**, then use **Save all drafts for later** for the rest. Confirm the individually reviewed draft no longer has an AI-review follow-up.
+8. Refresh the page while drafts remain and confirm **Resume review** restores the saved batch from Start Here or Inventory.
+9. Open Inventory, set a batch location and room/area in the bulk import card, then try **Add one photo**.
+10. Confirm the item form opens as a new item, not an edit, with batch location and room/area prefilled.
+11. Refresh the page and confirm the batch location and room/area are remembered locally.
+12. Confirm any AI-prefilled warning and intake-service warnings appear before saving.
+13. Confirm the Essential section shows item name, location, make, model, Serial Number (SN), and value first.
+14. Save with **Save & add another** and confirm the app returns to Inventory.
+15. Confirm the **Bulk review queue** shows missing make/model before lower-priority receipt/appraisal follow-up, and lists all remaining checks for each queued item.
+16. Use **Review next** and confirm the top queued item opens directly in edit mode.
+17. Save the reviewed item and confirm the AI-prefill review flag clears, while any remaining make/model, serial, value, photo, or document flags stay visible.
+18. If an item has a serial candidate, enter a confirmed serial from the quick-check list and confirm the serial verification flag clears.
+19. If an item has no manual or assisted value, enter a quick manual value from the quick-check list and confirm the value flag clears.
+20. Open a queued item and confirm the item detail screen shows the same quick-check list with an edit action.
+21. Type into a quick serial/value field, switch to another item, and confirm the quick-entry field is cleared so stale text cannot be saved to the wrong item.
+22. When all active items are complete enough, confirm the queue shows a clear-backlog confirmation instead of disappearing silently.
 
 ## Replacement Value Assist
 
-1. In Settings, switch to Free.
+1. In Settings, switch to Free demo access and confirm the copy labels this as a prototype test setting, not a paid subscription.
 2. Open an item and confirm automatic lookup is locked while manual value entry works.
-3. Switch to Premium.
-4. Run **Find Comparable Values** and confirm range, confidence, comparable listings, checked date, and disclaimer appear.
+3. Switch to Premium demo access.
+4. Run **Estimate replacement cost** and confirm range, confidence, comparable listings, checked date, and disclaimer appear.
 
 ## Incidents and exports
 
@@ -44,7 +45,7 @@ Run this against the local or preview web build before approving a production de
 1. Open Settings and confirm browser storage meter appears or explains unavailable estimate.
 2. Download a backup.
 3. Choose **Reset demo data**, cancel once, then confirm once.
-4. Confirm inventory, incident sample data, locations, and Free plan reset.
+4. Confirm inventory, incident sample data, locations, saved photo drafts, and Free demo access reset.
 
 ## Mobile backup smoke check
 

@@ -60,7 +60,7 @@ export function CloudSyncPanel({ items, locations, tier, onRestoreCloud }: Cloud
   }
 
   return <section className="panel cloudPanel">
-    <div className="backupIntro"><Cloud/><div><h2>Cloud sync</h2><p>Signed-in accounts autosave inventory, incidents, locations, plan status, and batch defaults. Local backup still works as a safety net.</p></div></div>
+    <div className="backupIntro"><Cloud/><div><h2>Cloud sync</h2><p>Signed-in accounts autosave inventory, incidents, locations, prototype feature access, and batch defaults. Local backup still works as a safety net.</p></div></div>
     {message && <div className="inlineNotice">{message}</div>}
     {error && <div className="formError" role="alert">{error}</div>}
     {status.authenticated ? <>

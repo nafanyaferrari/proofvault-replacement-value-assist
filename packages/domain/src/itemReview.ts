@@ -1,7 +1,7 @@
 import type { InventoryItem } from './types';
 
 export interface ItemReviewFlag {
-  id: 'verify-serial' | 'review-ai-prefill' | 'add-value' | 'add-photo' | 'add-supporting-doc';
+  id: 'verify-serial' | 'review-ai-prefill' | 'add-make-model' | 'add-value' | 'add-photo' | 'add-supporting-doc';
   label: string;
   detail: string;
   priority: 'high' | 'medium' | 'low';
@@ -28,6 +28,7 @@ export interface ItemReviewBacklog {
 const reviewIssueLabels: Record<ItemReviewFlag['id'], string> = {
   'verify-serial': 'Serial',
   'review-ai-prefill': 'AI review',
+  'add-make-model': 'Make & model',
   'add-value': 'Value',
   'add-photo': 'Photo',
   'add-supporting-doc': 'Docs'
@@ -54,6 +55,19 @@ export function itemReviewFlags(item: InventoryItem): ItemReviewFlag[] {
       label: 'Review AI-prefilled details',
       detail: 'Confirm make, model, description, condition, and accessories before relying on this record.',
       priority: 'medium'
+    });
+  }
+
+  const missingIdentity = [
+    !item.make?.trim() ? 'make' : '',
+    !item.model?.trim() ? 'model' : ''
+  ].filter(Boolean);
+  if (missingIdentity.length) {
+    flags.push({
+      id: 'add-make-model',
+      label: `Add ${missingIdentity.join(' and ')}`,
+      detail: 'Make and model are the fastest details for matching the right replacement item.',
+      priority: 'high'
     });
   }
 
@@ -106,6 +120,7 @@ export function itemReviewBacklog(items: InventoryItem[], limit = 4): ItemReview
   const countsByFlag: ItemReviewBacklog['countsByFlag'] = {
     'verify-serial': 0,
     'review-ai-prefill': 0,
+    'add-make-model': 0,
     'add-value': 0,
     'add-photo': 0,
     'add-supporting-doc': 0

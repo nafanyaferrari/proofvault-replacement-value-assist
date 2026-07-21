@@ -22,35 +22,54 @@ Use two email addresses you control:
 - Free user test account
 - Premium demo test account
 
-Plan status is still mocked in the app for this prototype, so switch the plan in Settings during the walkthrough.
+Feature access is still mocked in the app for this prototype, so switch **Premium demo access** in Settings during the walkthrough. It is not a paid subscription or customer entitlement yet.
+
+## Signed-out local demo flow
+
+1. Open https://proofvault-app.vercel.app in a fresh private/incognito window.
+2. Confirm the first screen invites you to try the local demo before signing in.
+3. Confirm the feature preview mentions walk-around bulk photos, make/model/SN review, Replacement Value Assist, and incident packets.
+4. Select Open local demo.
+5. Confirm the Start Here screen shows "Walk around and add many photos."
+6. Open the sample Trek bicycle item and confirm Replacement Value Assist shows an estimate, comparables, confidence, checked date, and disclaimer.
+7. Confirm the review queue includes an AI/SN verification sample so the reviewer flow is visible outside signed-in accounts.
+8. Confirm local demo data is labeled as separate from signed-in account data.
 
 ## Free user flow
 
 1. Open https://proofvault-app.vercel.app in a fresh private/incognito window.
 2. Sign in with the free test email.
 3. Confirm the account starts empty.
-4. Confirm the top status banner says signed-in account and free plan.
-5. Open Inventory.
-6. Confirm AI Photo Intake says it is Premium.
-7. Add an item manually.
-8. Add at least one photo manually.
-9. Add a serial number manually.
-10. Add a user-entered replacement value manually.
-11. Save the item.
-12. Confirm the app shows an autosave status.
-13. Refresh the page and confirm the item remains in the signed-in account.
+4. Confirm the top status banner says signed-in account and Free demo access.
+5. On Start Here, confirm "Walk around and add many photos" is shown but asks for Premium.
+6. Open Inventory.
+7. Confirm Bulk Photo Import explains Premium and does not allow automatic AI import on Free.
+8. Add an item manually.
+9. Confirm the first fields are Item name, Location, Make, Model, Serial Number (SN), and value.
+10. Add at least one item photo manually.
+11. Add a serial-number photo manually if available.
+12. Add a user-entered replacement value manually.
+13. Save the item.
+14. Confirm the app shows an autosave status.
+15. Refresh the page and confirm the item remains in the signed-in account.
 
 ## Premium demo flow
 
-1. Switch the account to Premium in Settings.
-2. Open Inventory.
-3. Confirm AI Photo Intake is available.
-4. Use Photograph & prefill with a clear item photo.
-5. Confirm the draft includes AI-filled description, make/model help, and a serial candidate if visible.
-6. Save the draft.
-7. Open the item detail screen.
-8. Confirm Replacement Value Assist shows a value estimate, confidence, checked date, disclaimer, and comparables.
-9. Confirm the item persists after refresh.
+1. Switch the account to Premium demo access in Settings.
+2. Return to Start Here.
+3. Use "Add many photos" with two or more clear item photos, one overview photo per item. Confirm the browser workflow limits one batch to 12 photos.
+4. Confirm ProofVault saves each successful draft and creates a review queue of photo drafts.
+5. Confirm the bulk review screen prioritizes Item name, Make, Model, Serial Number (SN), Location, and Value.
+6. Confirm each AI-filled SN is treated as something to verify, not a guaranteed identifier.
+7. Save one draft, then use "Save all drafts for later" for the rest. Confirm the individually reviewed draft does not remain flagged for AI review.
+8. Refresh before finishing a second batch and confirm **Resume review** restores the saved drafts. Open Inventory and confirm the saved drafts appear.
+9. Use "Add one photo" with a clear item photo.
+10. Confirm the single-item draft includes AI-filled description, make/model help, and a serial candidate if visible.
+11. Save the draft.
+12. Open the item detail screen.
+13. Confirm Replacement Value Assist shows a value estimate, confidence, checked date, disclaimer, and comparables.
+14. Confirm the main value button says "Estimate replacement cost."
+15. Confirm the item persists after refresh.
 
 ## Incident export flow
 
@@ -70,8 +89,7 @@ Plan status is still mocked in the app for this prototype, so switch the plan in
 
 ## Expected prototype limitations
 
-- Subscription status is still mocked locally.
+- Premium access is still a prototype test setting. Real billing and server-side entitlement enforcement are not built yet.
 - Marketplace value lookup is mocked.
 - Live AI photo analysis uses Gemini for testing.
-- Real billing and server-side subscription enforcement still need to be built before real customers.
 - Multi-device conflict handling is basic snapshot sync, not full conflict resolution yet.
