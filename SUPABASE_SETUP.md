@@ -34,7 +34,7 @@ Use the public anon key only. Do not put a service-role key in the mobile app or
 In Supabase → Authentication → URL Configuration:
 
 - Site URL for local dev: `http://localhost:5173`
-- Add the deployed Vercel URL when ready: `https://proofvault.vercel.app`
+- Add the deployed Vercel URL when ready: `https://proofvault-app.vercel.app`
 
 ## 5. Run locally
 
