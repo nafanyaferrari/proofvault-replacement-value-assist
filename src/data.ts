@@ -16,6 +16,16 @@ export const loadItems=(useDemoFallback=true)=>{try{const stored=JSON.parse(loca
 export const saveItems=(items:InventoryItem[])=>localStorage.setItem('pv-items',JSON.stringify(items));
 export const loadTier=():SubscriptionTier=>(localStorage.getItem('pv-tier') as SubscriptionTier)||'free';
 export const saveTier=(tier:SubscriptionTier)=>localStorage.setItem('pv-tier',tier);
+export const trialPhotoLimit=3;
+const trialPhotoKey=(scope:string)=>`pv-trial-photo-uses:${scope}`;
+export const loadTrialPhotoUses=(scope:string)=>{try{const uses=Number(localStorage.getItem(trialPhotoKey(scope))||'0');return Number.isInteger(uses)&&uses>0?Math.min(uses,trialPhotoLimit):0}catch{return 0}};
+export const saveTrialPhotoUses=(scope:string,uses:number)=>localStorage.setItem(trialPhotoKey(scope),String(Math.max(0,Math.min(trialPhotoLimit,Math.floor(uses)))));
+export const premiumAiAssistLimit=500;
+export interface PremiumAiAssistUsage { cycleStartedAt:string; uses:number; }
+const premiumAiUsageKey=(scope:string)=>`pv-premium-ai-assists:${scope}`;
+const oneYearMs=365*24*60*60*1000;
+export const loadPremiumAiAssistUsage=(scope:string,now=Date.now()):PremiumAiAssistUsage=>{try{const stored=JSON.parse(localStorage.getItem(premiumAiUsageKey(scope))||'null') as Partial<PremiumAiAssistUsage>|null;const started=stored?.cycleStartedAt?Date.parse(stored.cycleStartedAt):NaN;const uses=Number(stored?.uses);if(!Number.isFinite(started)||now-started>=oneYearMs||!Number.isInteger(uses)||uses<0)return{cycleStartedAt:new Date(now).toISOString(),uses:0};return{cycleStartedAt:stored!.cycleStartedAt!,uses:Math.min(uses,premiumAiAssistLimit)}}catch{return{cycleStartedAt:new Date(now).toISOString(),uses:0}}};
+export const savePremiumAiAssistUsage=(scope:string,usage:PremiumAiAssistUsage)=>localStorage.setItem(premiumAiUsageKey(scope),JSON.stringify({cycleStartedAt:usage.cycleStartedAt,uses:Math.max(0,Math.min(premiumAiAssistLimit,Math.floor(usage.uses)))}));
 export const loadIncidents=(useDemoFallback=true):Incident[]=>{try{const stored=JSON.parse(localStorage.getItem('pv-incidents')||'null');return stored||(useDemoFallback?[seedIncident]:[])}catch{return useDemoFallback?[seedIncident]:[]}};
 export const saveIncidents=(incidents:Incident[])=>localStorage.setItem('pv-incidents',JSON.stringify(incidents));
 export const seedLocations:LocationRecord[]=[{id:'loc-home',name:'Home',notes:'Primary residence',createdAt:now},{id:'loc-garage',name:'Garage',createdAt:now},{id:'loc-storage',name:'Storage unit',createdAt:now}];

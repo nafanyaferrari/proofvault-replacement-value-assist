@@ -14,6 +14,7 @@ export interface CloudStatus {
   configured: boolean;
   authenticated: boolean;
   email?: string;
+  userId?: string;
 }
 
 async function requireUser() {
@@ -55,7 +56,8 @@ export const cloudPersistenceService = {
     return {
       configured: true,
       authenticated: Boolean(data.session?.user),
-      email: data.session?.user.email
+      email: data.session?.user.email,
+      userId: data.session?.user.id
     };
   },
 
@@ -65,7 +67,8 @@ export const cloudPersistenceService = {
       callback({
         configured: true,
         authenticated: Boolean(session?.user),
-        email: session?.user.email
+        email: session?.user.email,
+        userId: session?.user.id
       });
     });
     return () => data.subscription.unsubscribe();

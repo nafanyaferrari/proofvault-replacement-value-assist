@@ -22,7 +22,7 @@ Use two email addresses you control:
 - Free user test account
 - Premium demo test account
 
-Feature access is still mocked in the app for this prototype, so switch **Premium demo access** in Settings during the walkthrough. It is not a paid subscription or customer entitlement yet.
+Feature access is still mocked in the app for this prototype, so switch **Premium demo access** in Settings during the walkthrough. Premium shows a 500-assist annual allowance, but it is not a paid subscription or secure customer entitlement yet.
 
 ## Signed-out local demo flow
 
@@ -30,7 +30,7 @@ Feature access is still mocked in the app for this prototype, so switch **Premiu
 2. Confirm the first screen invites you to try the local demo before signing in.
 3. Confirm the feature preview mentions walk-around bulk photos, make/model/SN review, Replacement Value Assist, and incident packets.
 4. Select Open local demo.
-5. Confirm the Start Here screen shows "Walk around and add many photos."
+5. Confirm the Start Here screen shows **Try Before You Buy** with three free AI photo analyses.
 6. Open the sample Trek bicycle item and confirm Replacement Value Assist shows an estimate, comparables, confidence, checked date, and disclaimer.
 7. Confirm the review queue includes an AI/SN verification sample so the reviewer flow is visible outside signed-in accounts.
 8. Confirm local demo data is labeled as separate from signed-in account data.
@@ -41,9 +41,9 @@ Feature access is still mocked in the app for this prototype, so switch **Premiu
 2. Sign in with the free test email.
 3. Confirm the account starts empty.
 4. Confirm the top status banner says signed-in account and Free demo access.
-5. On Start Here, confirm "Walk around and add many photos" is shown but asks for Premium.
-6. Open Inventory.
-7. Confirm Bulk Photo Import explains Premium and does not allow automatic AI import on Free.
+5. On Start Here, use one free Try Before You Buy photo analysis and confirm it creates a reviewable draft with description, make/model/SN candidate, and estimate.
+6. Confirm the status shows two trial analyses remain. Use the remaining two, then confirm a fourth photo asks for Premium.
+7. Open Inventory and confirm manual entry remains available on Free.
 8. Add an item manually.
 9. Confirm the first fields are Item name, Location, Make, Model, Serial Number (SN), and value.
 10. Add at least one item photo manually.
@@ -56,7 +56,7 @@ Feature access is still mocked in the app for this prototype, so switch **Premiu
 ## Premium demo flow
 
 1. Switch the account to Premium demo access in Settings.
-2. Return to Start Here.
+2. Return to Start Here and confirm the Premium status shows 500 annual AI assists remaining.
 3. Use "Add many photos" with two or more clear item photos, one overview photo per item. Confirm the browser workflow limits one batch to 12 photos.
 4. Confirm ProofVault saves each successful draft and creates a review queue of photo drafts.
 5. Confirm the bulk review screen prioritizes Item name, Make, Model, Serial Number (SN), Location, and Value.
@@ -89,7 +89,7 @@ Feature access is still mocked in the app for this prototype, so switch **Premiu
 
 ## Expected prototype limitations
 
-- Premium access is still a prototype test setting. Real billing and server-side entitlement enforcement are not built yet.
+- Premium access is still a prototype test setting. The 500-assist counter and Try Before You Buy counts are browser-scoped only; the secure enforcement migration is prepared but billing, household invitations, and device controls are not active yet.
 - Marketplace value lookup is mocked.
 - Live AI photo analysis uses Gemini for testing.
 - Multi-device conflict handling is basic snapshot sync, not full conflict resolution yet.

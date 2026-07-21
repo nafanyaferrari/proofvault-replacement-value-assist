@@ -14,13 +14,16 @@ npm run dev
 1. Open the local demo or sign in, then use **Walk around and add many photos** / **Add many photos** to create a saved batch of reviewable item drafts. Use one clear overview photo per item; the web demo processes up to 12 items per batch for reliable browser storage.
 2. Review the essential fields first: item name, location, make, model, Serial Number (SN), and value. Use **Save this item** or **Save all drafts for later** depending on how quickly you want to move through the batch. Drafts survive a refresh and can be resumed from Start Here or Inventory.
 3. Use the **Bulk review queue** or **Review next** to spot missing make/model, serial candidates, AI-prefilled records, missing values, and missing supporting evidence.
-4. In free mode, confirm automatic lookup is locked while manual value entry remains available.
-5. Open Settings and switch the prototype test setting to Premium demo access.
+4. In free mode, use up to three **Try Before You Buy** AI photo analyses. Each successful photo creates a draft with an AI description, make/model/SN candidate, and approximate replacement estimate; confirm the fields still need user review.
+5. Confirm a fourth free AI photo analysis asks for Premium demo access, while manual item and value entry remains available.
+6. Open Settings and switch the prototype test setting to Premium demo access.
 6. Try **Add one photo** again or open an item and choose **Estimate replacement cost**.
 7. Save or select a comparable value.
 8. Open Incident and generate the packet. It includes the estimate, comparable links, checked date, confidence, and disclaimer.
 
-The signed-out local demo is stored in browser `localStorage`. Signed-in accounts load and autosave their inventory, evidence references, incidents, locations, prototype access setting, and batch defaults to the user's private Supabase account. Opening the local demo starts from fresh sample data, so it does not reuse a prior signed-in account's browser cache. Marketplace results are mocked and adapters are defined for a future secure backend; API keys must never be put in the client.
+The signed-out local demo is stored in browser `localStorage`. Signed-in accounts load and autosave their inventory, evidence references, incidents, locations, prototype access setting, and batch defaults to the user's private Supabase account. Opening the local demo starts from fresh sample data, so it does not reuse a prior signed-in account's browser cache. Free access includes three **Try Before You Buy** AI photo analyses per browser scope (local demo or signed-in browser account); the count is deliberately labeled as prototype-only and is not secure billing or a cross-device entitlement. Marketplace results are mocked and adapters are defined for a future secure backend; API keys must never be put in the client.
+
+The launch access design is three free analyses, then **500 Premium AI assists per annual cycle**, with planned 100-assist add-ons. Premium is intended for one owner, one invited household member, and three active devices—not password sharing. The billing-ready Supabase migration and server enforcement handoff are documented in `AI_ACCESS_PLAN.md`; browser counters remain a prototype-only preview until the secure backend variables and billing webhook are enabled.
 
 Photo-first intake can use the secure AI endpoint when configured, and it falls back to a fixed mock result for local demo/testing. This proves the intended low-effort flow—photos, AI-prefilled drafts, user verification, optional premium estimate—without putting AI or marketplace API keys in the client.
 

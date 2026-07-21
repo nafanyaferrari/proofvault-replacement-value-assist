@@ -6,6 +6,7 @@ import { SERIAL_VERIFICATION_WARNING } from '../packages/domain/src/itemIntakeBa
 interface VercelRequest {
   method?: string;
   body?: unknown;
+  headers?: Record<string, string | string[] | undefined>;
 }
 
 interface VercelResponse {
@@ -26,6 +27,39 @@ interface AiItemJson {
   suggestedDescription?: string;
   confidence?: Partial<Record<'make' | 'model' | 'serialNumber' | 'barcode' | 'category' | 'condition', Confidence>>;
   warnings?: string[];
+}
+
+interface VerifiedUser { id:string; }
+
+function headerValue(req: VercelRequest, name: string) {
+  const value=req.headers?.[name] ?? req.headers?.[name.toLowerCase()];
+  return Array.isArray(value)?value[0]:value;
+}
+
+async function verifiedUser(req: VercelRequest): Promise<VerifiedUser> {
+  const url=process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anonKey=process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  const authorization=headerValue(req,'authorization');
+  if(!url||!anonKey||!authorization)throw new Error('Sign in is required for AI analysis.');
+  const response=await fetch(`${url}/auth/v1/user`,{headers:{apikey:anonKey,authorization}});
+  if(!response.ok)throw new Error('Your sign-in session could not be verified.');
+  return response.json();
+}
+
+async function consumeAiAssist(req: VercelRequest) {
+  if(process.env.AI_USAGE_ENFORCEMENT!=='true')return;
+  const url=process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if(!url||!serviceRoleKey)throw new Error('AI usage enforcement is not configured on the server.');
+  const user=await verifiedUser(req);
+  const response=await fetch(`${url}/rest/v1/rpc/proofvault_consume_ai_assist`,{
+    method:'POST',
+    headers:{apikey:serviceRoleKey,authorization:`Bearer ${serviceRoleKey}`,'content-type':'application/json'},
+    body:JSON.stringify({target_user_id:user.id,requested_feature:'photo_intake',requested_provider:process.env.GEMINI_API_KEY?'gemini-vision':process.env.OPENAI_API_KEY?'openai-vision':'mock'})
+  });
+  if(!response.ok)throw new Error('AI usage could not be checked.');
+  const result=await response.json() as Array<{allowed:boolean;remaining:number}>;
+  if(!result[0]?.allowed){const error=new Error('Your AI assist allowance is used. Add more assists or renew your plan.');(error as Error & { code?:string }).code='AI_USAGE_LIMIT';throw error;}
 }
 
 const categories = ['Tools','Electronics','Jewelry','Bicycles','Furniture','Collectibles','Other'];
@@ -263,6 +297,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!request?.photos?.length) return res.status(400).json({ error: 'At least one photo is required.' });
 
   try {
+    await consumeAiAssist(req);
     const response = await analyzeWithConfiguredProvider(request);
 
     if (request.includeValuation) {
@@ -271,8 +306,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json(response);
   } catch (error) {
+    const code=(error as Error & { code?:string }).code || (process.env.AI_USAGE_ENFORCEMENT==='true' ? 'AI_USAGE_DENIED' : undefined);
     return res.status(500).json({
-      error: error instanceof Error ? error.message : 'Photo analysis failed.'
+      error: error instanceof Error ? error.message : 'Photo analysis failed.',
+      code
     });
   }
 }
