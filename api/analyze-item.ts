@@ -32,7 +32,7 @@ interface SecureItemIntakeRequest {
 
 interface SecureItemIntakeResponse {
   draft: InventoryDraft; suggestedTitle: string; suggestedDescription: string;
-  fields: Record<string, { value: string; confidence: Confidence; source: string } | undefined>;
+  fields: Record<string, { value: string; confidence: Confidence; source: string } | undefined>; candidates?: InventoryDraft[];
   warnings: string[]; needsSerialVerification: boolean; providersUsed: string[]; valuation?: ValuationResult;
 }
 
@@ -65,6 +65,7 @@ interface AiItemJson {
   suggestedDescription?: string;
   confidence?: Partial<Record<'make' | 'model' | 'serialNumber' | 'barcode' | 'category' | 'condition', Confidence>>;
   warnings?: string[];
+  detectedItems?: AiItemJson[];
 }
 
 interface VerifiedUser { id:string; }
@@ -217,7 +218,8 @@ function mockResponse(request: SecureItemIntakeRequest): SecureItemIntakeRespons
     },
     warnings: ['AI provider is not configured yet; backend returned a mock photo-analysis result.', SERIAL_VERIFICATION_WARNING],
     needsSerialVerification: true,
-    providersUsed: ['mock']
+    providersUsed: ['mock'],
+    candidates: [draft]
   };
 }
 
@@ -233,10 +235,8 @@ function dataUrlParts(uri: string) {
   return { mimeType: match[1] || 'image/jpeg', data: match[2] };
 }
 
-function itemJsonSchema() {
+function itemJsonProperties() {
   return {
-    type: 'object',
-    properties: {
       itemName: { type: 'string' },
       category: { type: 'string', enum: categories },
       make: { type: 'string' },
@@ -258,8 +258,11 @@ function itemJsonSchema() {
         }
       },
       warnings: { type: 'array', items: { type: 'string' } }
-    }
   };
+}
+
+function itemJsonSchema() {
+  return { type: 'object', properties: { ...itemJsonProperties(), detectedItems: { type: 'array', maxItems: 5, items: { type: 'object', properties: itemJsonProperties() } } } };
 }
 
 function parseGeminiText(payload: any) {
@@ -278,29 +281,30 @@ function providerUnavailableError() {
   return error;
 }
 
+function providerConfigurationError(message: string) {
+  const error = new Error(message) as Error & { code?: string };
+  error.code = 'AI_PROVIDER_CONFIGURATION_ERROR';
+  return error;
+}
+
 async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiItemJson> {
   const apiKey = process.env.GEMINI_API_KEY;
-  const model = process.env.GEMINI_VISION_MODEL || 'gemini-3.5-flash';
+  // Keep a stable, image-capable model here. The preferred model is still
+  // configurable in Vercel, but a bad or retired model must not strand a
+  // customer's saved photo in the retry queue.
+  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.5-flash';
   const models = [...new Set([model, process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash'])];
   if (!apiKey) throw new Error('Gemini is not configured.');
 
-  const image = request.photos[0]?.uri;
-  if (!image) throw new Error('At least one photo is required.');
-  const inline = dataUrlParts(image);
+  if (!request.photos.length) throw new Error('At least one photo is required.');
+  const photoParts = request.photos.map((photo, index) => {
+    const inline = dataUrlParts(photo.uri);
+    return { inline_data: { mime_type: inline.mimeType, data: inline.data }, index };
+  });
 
   const requestBody = JSON.stringify({
     contents: [{
-      parts: [
-        {
-          text: 'Analyze this household inventory item photo for an insurance/property documentation app. Return JSON only. Use empty strings for uncertain fields. Never invent serial numbers, barcodes, prices, or appraisals. If a serial number is not visibly legible, leave it empty and add a warning.'
-        },
-        {
-          inline_data: {
-            mime_type: inline.mimeType,
-            data: inline.data
-          }
-        }
-      ]
+      parts: [{ text: 'Analyze these photos for a household inventory app. The first photo is an overview; later photos may be close-ups of the make, model, serial number, barcode, or condition of that same primary item. Return JSON only. Use empty strings for uncertain fields. Never invent serial numbers, barcodes, prices, or appraisals. If a serial number is not visibly legible, leave it empty and add a warning. If the overview clearly contains more than one separately inventory-worthy item, put every distinct candidate, including the primary item, in detectedItems (maximum five). Do not split normal accessories, packaging, or parts of the same item into separate candidates.' }, ...photoParts.flatMap(({ index, ...part }) => [{ text: index === 0 ? 'Photo 1: overview of the item or scene.' : `Photo ${index + 1}: close-up evidence for the primary item.` }, part])]
     }],
     generationConfig: {
       response_mime_type: 'application/json',
@@ -310,6 +314,7 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
 
   // Gemini documents 429 and 5xx responses as transient. Retry the preferred
   // model once, then use a stable multimodal fallback before reporting failure.
+  let modelNotFound = false;
   for (const activeModel of models) {
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
@@ -326,6 +331,14 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
           return JSON.parse(text.slice(start, end + 1));
         }
 
+        // A 404 normally means a model name was retired, misspelled, or is not
+        // available to this key. Try the next configured model immediately;
+        // retrying the same model only wastes time and leaves photos stuck.
+        if (response.status === 404) {
+          modelNotFound = true;
+          console.warn('[analyze-item] Gemini model was not found; trying fallback', { model: activeModel });
+          break;
+        }
         const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
         if (!retryable) {
           const error = new Error(`Gemini photo analysis failed: ${response.status}`) as Error & { code?: string };
@@ -342,6 +355,7 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
     console.warn('[analyze-item] Gemini model exhausted; trying fallback', { model: activeModel });
   }
 
+  if (modelNotFound) throw providerConfigurationError('Gemini could not find a configured vision model. The saved photo was not analyzed; update GEMINI_VISION_MODEL and retry it.');
   throw providerUnavailableError();
 }
 
@@ -350,8 +364,7 @@ async function analyzeWithOpenAi(request: SecureItemIntakeRequest): Promise<AiIt
   const model = process.env.OPENAI_VISION_MODEL;
   if (!apiKey || !model) throw new Error('OpenAI is not configured.');
 
-  const image = request.photos[0]?.uri;
-  if (!image) throw new Error('At least one photo is required.');
+  if (!request.photos.length) throw new Error('At least one photo is required.');
 
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -363,10 +376,7 @@ async function analyzeWithOpenAi(request: SecureItemIntakeRequest): Promise<AiIt
       model,
       input: [{
         role: 'user',
-        content: [
-          { type: 'input_text', text: 'Analyze this household inventory item photo. Return only JSON with: itemName, category, make, model, serialNumber, barcode, condition, distinguishingFeatures, suggestedDescription, confidence, warnings. Use empty strings for uncertain fields. Prefix nothing with VERIFY; the app will do that. Never claim a serial number unless it is visibly legible.' },
-          { type: 'input_image', image_url: image }
-        ]
+        content: [{ type: 'input_text', text: 'Analyze these household inventory photos. The first is an overview; later photos may be label, make/model, serial-number, barcode, or condition close-ups for the same primary item. Return only JSON with itemName, category, make, model, serialNumber, barcode, condition, distinguishingFeatures, suggestedDescription, confidence, warnings, and detectedItems. Use empty strings for uncertain fields. Never claim a serial number unless visibly legible. If the first photo has distinct inventory-worthy items, detectedItems should include each candidate including the primary; do not split accessories or parts of the same item.' }, ...request.photos.map(photo => ({ type: 'input_image', image_url: photo.uri }))]
       }]
     })
   });
@@ -395,7 +405,8 @@ function responseFromAi(request: SecureItemIntakeRequest, ai: AiItemJson, source
     },
     warnings,
     needsSerialVerification: Boolean(draft.serialNumber),
-    providersUsed: [source]
+    providersUsed: [source],
+    candidates: (ai.detectedItems?.length ? ai.detectedItems : [ai]).map(candidate => baseDraft(request, candidate)).filter((candidate, index, all) => Boolean(candidate.itemName) && all.findIndex(other => `${other.itemName}|${other.make}|${other.model}` === `${candidate.itemName}|${candidate.make}|${candidate.model}`) === index)
   };
 }
 
@@ -405,8 +416,8 @@ async function analyzeWithConfiguredProvider(request: SecureItemIntakeRequest) {
       return responseFromAi(request, await analyzeWithGemini(request), 'gemini-vision');
     } catch (error) {
       const openAiConfigured = Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_VISION_MODEL);
-      if ((error as Error & { code?: string }).code === 'AI_PROVIDER_UNAVAILABLE' && openAiConfigured) {
-        console.warn('[analyze-item] Gemini unavailable; trying OpenAI fallback');
+      if (['AI_PROVIDER_UNAVAILABLE', 'AI_PROVIDER_CONFIGURATION_ERROR'].includes((error as Error & { code?: string }).code || '') && openAiConfigured) {
+        console.warn('[analyze-item] Gemini unavailable or misconfigured; trying OpenAI fallback');
         return responseFromAi(request, await analyzeWithOpenAi(request), 'openai-vision');
       }
       throw error;

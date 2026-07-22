@@ -7,6 +7,7 @@ test('secure backend intake adapter preserves review warnings and confidence', a
     async analyzeItem(request) {
       assert.equal(request.includeValuation, false);
       assert.equal(request.photos[0].uri, 'file:///drill.jpg');
+      assert.equal(request.photos[1].uri, 'file:///drill-serial.jpg');
       return {
         draft: {
           itemName: 'Cordless drill',
@@ -43,7 +44,7 @@ test('secure backend intake adapter preserves review warnings and confidence', a
   };
 
   const analyzer = createSecureBackendItemIntakeAnalyzer(client);
-  const result = await analyzer.analyze({ photoUri: 'file:///drill.jpg', location: 'Garage' }, false);
+  const result = await analyzer.analyze({ photoUri: 'file:///drill.jpg', photos: ['file:///drill.jpg', 'file:///drill-serial.jpg'], location: 'Garage' }, false);
 
   assert.equal(result.provider, 'secure-backend');
   assert.equal(result.fieldConfidence.make, 'high');

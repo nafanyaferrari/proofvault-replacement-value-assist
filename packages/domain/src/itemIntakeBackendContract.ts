@@ -45,6 +45,7 @@ export interface SecureItemIntakeResponse {
   needsSerialVerification: boolean;
   providersUsed: IntakeBackendProvider[];
   valuation?: ValuationResult;
+  candidates?: InventoryDraft[];
 }
 
 export interface SecureItemIntakeBackendClient {
@@ -61,7 +62,7 @@ export function createSecureBackendItemIntakeAnalyzer(client: SecureItemIntakeBa
   return {
     async analyze(input: ItemIntakeInput, includeValuation: boolean): Promise<ItemIntakeResult> {
       const response = await client.analyzeItem({
-        photos: [{ uri: input.photoUri }],
+      photos: (input.photos?.length ? input.photos : [input.photoUri]).map(uri => ({ uri })),
         itemContext: { location: input.location, room: input.room },
         includeValuation
       });
@@ -79,6 +80,7 @@ export function createSecureBackendItemIntakeAnalyzer(client: SecureItemIntakeBa
         provider: response.providersUsed.includes('mock') ? 'mock' : 'secure-backend',
         warnings: response.warnings,
         valuation: response.valuation
+        ,candidates: response.candidates
       };
     }
   };

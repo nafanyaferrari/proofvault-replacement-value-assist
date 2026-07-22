@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowDown, ArrowRight, Camera, Check, Cloud, FileText, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react';
 import { cloudPersistenceService, CloudStatus } from '../services/cloudPersistenceService';
+import { PricingPage } from './PricingPage';
 
 interface AccountGateProps {
   status: CloudStatus;
@@ -13,6 +14,8 @@ export function AccountGate({ status, onContinueLocal, onStatusChange }: Account
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  if (window.location.pathname.replace(/\/+$/, '') === '/pricing') return <PricingPage />;
 
   const sendMagicLink = async () => {
     setBusy(true);
@@ -32,7 +35,7 @@ export function AccountGate({ status, onContinueLocal, onStatusChange }: Account
   return <main className="accountPage">
     <header className="landingNav">
       <div className="accountBrand"><ShieldCheck /><b>ProofVault</b></div>
-      <a href="#account">Sign in or create account</a>
+      <div className="landingNavActions"><a href="/pricing">Pricing</a><a href="#account">Sign in or create account</a></div>
     </header>
 
     <section className="accountHero landingHero">
@@ -42,6 +45,7 @@ export function AccountGate({ status, onContinueLocal, onStatusChange }: Account
       <div className="landingHeroActions">
         <a className="primary landingPrimary" href="#why">See why ProofVault exists <ArrowDown /></a>
         <a className="landingTextLink" href="#demo">Jump to the no-sign-up demo <ArrowRight /></a>
+        <a className="landingTextLink" href="/pricing">View Founding Household pricing <ArrowRight /></a>
       </div>
       <div className="accountHighlights" aria-label="ProofVault benefits">
         <span><Camera />Start with photos, not forms</span>

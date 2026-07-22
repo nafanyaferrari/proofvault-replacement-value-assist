@@ -23,7 +23,7 @@ import { evidenceStorageService, isSupabaseStorageReference } from './services/e
 type View = 'home' | 'inventory' | 'bulkReview' | 'detail' | 'form' | 'locations' | 'incident' | 'settings';
 const emptyAccountLocations:LocationRecord[]=[{id:'loc-home',name:'Home',notes:'Default location for your first items',createdAt:new Date().toISOString()}];
 const maxBulkPhotosPerBatch = 12;
-let queuePresentation:{jobs:AnalysisJob[];pendingDrafts:number;resumeReview:()=>void;signedIn:boolean}={jobs:[],pendingDrafts:0,resumeReview:()=>undefined,signedIn:false};
+let queuePresentation:{jobs:AnalysisJob[];pendingDrafts:number;resumeReview:()=>void;signedIn:boolean;canUseAiPhoto?:boolean;startItemPhotos?:(files:File[])=>void;retryFailed?:(jobId:string)=>void}={jobs:[],pendingDrafts:0,resumeReview:()=>undefined,signedIn:false};
 
 export function App() {
   const [view, setView] = useState<View>('home');
@@ -177,13 +177,14 @@ export function App() {
     valuationNotes: item.valuationNotes ? `${item.valuationNotes} Replacement estimate created from photo-first intake mock analysis.` : 'Created from photo-first intake mock analysis.',
     comparableListings: valuation.comparableListings
   } : item;
-  const draftFromIntakeResult = (result: Awaited<ReturnType<typeof itemIntakeService.analyze>>, photo: string): InventoryItem => {
+  const draftFromIntakeResult = (result: Awaited<ReturnType<typeof itemIntakeService.analyze>>, photo: string|string[], sourceDraft=result.draft, valuation=sourceDraft===result.draft?result.valuation:undefined): InventoryItem => {
     const now = new Date().toISOString();
+    const photos=Array.isArray(photo)?photo:[photo];
     return applyValuation({
-      ...result.draft,
+      ...sourceDraft,
       id: uid('item'),
-      photos: [photo],
-      serialPhotos: [],
+      photos: photos.slice(0,1),
+      serialPhotos: photos.slice(1),
       markingPhotos: [],
       receiptFiles: [],
       appraisalFiles: [],
@@ -191,17 +192,21 @@ export function App() {
       damagePhotos: [],
       otherFiles: [],
       comparableListings: [],
-      aiSuggestedTitle: result.suggestedTitle,
+      aiSuggestedTitle: sourceDraft.itemName || result.suggestedTitle,
       aiDescription: result.suggestedDescription,
       valuationNotes: result.needsSerialVerification ? 'AI-prefilled draft. Serial number requires user verification.' : undefined,
       createdAt: now,
       updatedAt: now
-    }, result.valuation);
+    }, valuation);
+  };
+  const draftsFromIntakeResult = (result: Awaited<ReturnType<typeof itemIntakeService.analyze>>, photos: string[]) => {
+    const candidates=result.candidates?.length?result.candidates:[result.draft];
+    return candidates.map(candidate=>draftFromIntakeResult(result,photos,candidate));
   };
   const draftFromQueuedJob = (job: AnalysisJob) => {
-    const response = job.result as { draft?: InventoryItem; suggestedTitle?: string; suggestedDescription?: string; fields?: Record<string, { confidence?: 'low'|'medium'|'high' } | undefined>; warnings?: string[]; needsSerialVerification?: boolean; providersUsed?: string[]; valuation?: ValuationResult } | undefined;
+    const response = job.result as { draft?: InventoryItem; candidates?: InventoryItem[]; suggestedTitle?: string; suggestedDescription?: string; fields?: Record<string, { confidence?: 'low'|'medium'|'high' } | undefined>; warnings?: string[]; needsSerialVerification?: boolean; providersUsed?: string[]; valuation?: ValuationResult } | undefined;
     if (!response?.draft) return;
-    return draftFromIntakeResult({
+    const result={
       draft: response.draft as Awaited<ReturnType<typeof itemIntakeService.analyze>>['draft'],
       suggestedTitle: response.suggestedTitle || response.draft.itemName,
       suggestedDescription: response.suggestedDescription || response.draft.userDescription || '',
@@ -211,10 +216,13 @@ export function App() {
         serialNumber: response.fields?.serialNumber?.confidence || 'low'
       },
       needsSerialVerification: Boolean(response.needsSerialVerification),
-      provider: response.providersUsed?.includes('mock') ? 'mock' : 'secure-backend',
+      provider: (response.providersUsed?.includes('mock') ? 'mock' : 'secure-backend') as 'mock'|'secure-backend',
       warnings: response.warnings,
-      valuation: response.valuation
-    }, analysisStorageReference(job.storage_path));
+      valuation: response.valuation,
+      candidates: response.candidates as Awaited<ReturnType<typeof itemIntakeService.analyze>>['candidates']
+    };
+    const photoPaths=job.storage_paths?.length?job.storage_paths:[job.storage_path];
+    return draftsFromIntakeResult(result,photoPaths.map(analysisStorageReference));
   };
   useEffect(() => {
     if (!cloudStatus.authenticated || !analysisQueueService.isAvailable()) {
@@ -234,7 +242,7 @@ export function App() {
         setAnalysisJobs(jobs);
         setQueuedAnalysisCount(jobs.filter(job => ['queued', 'processing', 'retrying'].includes(job.status)).length);
         const completed = jobs.filter(job => job.status === 'complete' && job.result);
-        const drafts = completed.map(draftFromQueuedJob).filter((draft): draft is InventoryItem => Boolean(draft));
+        const drafts = completed.flatMap(job=>draftFromQueuedJob(job)??[]);
         if (!drafts.length) return;
         adoptingQueuedJobs.current = true;
         try {
@@ -266,12 +274,21 @@ export function App() {
     const interval = window.setInterval(() => void refreshQueuedJobs(), 12_000);
     return () => { active = false; window.clearInterval(interval); };
   }, [cloudStatus.authenticated, tier, trialScope]);
-  const queueDurablePhoto = async (photo: string, defaultLocation?: string, defaultRoom?: string) => {
-    const queued = await analysisQueueService.enqueue(photo, { location: defaultLocation || locations[0]?.name || 'Home', room: defaultRoom }, true);
+  const queueDurablePhoto = async (photos: string[], defaultLocation?: string, defaultRoom?: string) => {
+    const queued = await analysisQueueService.enqueue(photos, { location: defaultLocation || locations[0]?.name || 'Home', room: defaultRoom }, true);
     setQueuedAnalysisCount(count => count + 1);
     void analysisQueueService.kick().catch(() => undefined);
     return queued;
   };
+  const retryFailedAnalysis = async (jobId: string) => {
+    try {
+      await analysisQueueService.retry(jobId);
+      setNotice('Saved photo analysis restarted. It will update here when the draft is ready.');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'The saved photo could not be retried yet.');
+    }
+  };
+  queuePresentation.retryFailed=retryFailedAnalysis;
   const recordTrialPhotoUse = (nextUses: number) => {
     try {
       saveTrialPhotoUses(trialScope, nextUses);
@@ -293,25 +310,34 @@ export function App() {
       return false;
     }
   };
-  const quickPhotoIntake = async (file: File, defaultLocation?: string, defaultRoom?: string) => {
+  const quickPhotoIntake = async (files: File|File[], defaultLocation?: string, defaultRoom?: string) => {
+    const selectedFiles=(Array.isArray(files)?files:[files]).slice(0,4);
+    if (!selectedFiles.length) return;
     if (!canUseAiPhoto) {
       setNotice(tier==='premium'?`Your ${premiumAiAssistLimit} annual Premium AI assists are used. Add more assists when billing is enabled, or add an item and value manually.`:'Your three Try Before You Buy AI photo analyses have been used. Enable Premium demo access for more photo analysis, or add an item and value manually.');
       return;
     }
     setIntakeLoading(true);
     try {
-      const photo = await optimizedPhotoDataUrl(file);
+      const photos = await Promise.all(selectedFiles.map(optimizedPhotoDataUrl));
       if (cloudStatus.authenticated && analysisQueueService.isAvailable()) {
-        await queueDurablePhoto(photo, defaultLocation, defaultRoom);
-        setNotice('Photo saved safely. ProofVault is analyzing it in the background; you can keep using the app or close it.');
+        await queueDurablePhoto(photos, defaultLocation, defaultRoom);
+        setNotice(`Photo set saved safely. ProofVault is analyzing the overview and ${photos.length-1||'no'} close-up${photos.length===2?'':'s'} in the background; you can keep using the app or close it.`);
         return;
       }
-      const result = await itemIntakeService.analyze({ photoUri: photo, location: defaultLocation || locations[0]?.name || 'Home', room: defaultRoom }, true);
-      const draft = draftFromIntakeResult(result, photo);
+      const result = await itemIntakeService.analyze({ photoUri: photos[0], photos, location: defaultLocation || locations[0]?.name || 'Home', room: defaultRoom }, true);
+      const drafts = draftsFromIntakeResult(result, photos);
       if (tier === 'free' && !recordTrialPhotoUse(trialPhotoUses + 1)) return;
       if (tier === 'premium' && !recordPremiumAiAssist(premiumAiUsage.uses + 1)) return;
+      if (drafts.length > 1) {
+        saveBulkDrafts([...loadBulkDrafts(), ...drafts]);
+        setBulkDrafts(current=>[...current,...drafts]);
+        setView('bulkReview');
+        setNotice(`ProofVault found ${drafts.length} possible items. Choose which records to save; one photo analysis was used.`);
+        return;
+      }
       setEditingId(undefined);
-      setAssistedDraft(draft);
+      setAssistedDraft(drafts[0]);
       setAssistedWarnings(result.warnings ?? []);
       setView('form');
       setNotice(tier === 'free' ? `Try Before You Buy analysis complete. ${Math.max(0, trialPhotosRemaining - 1)} of ${trialPhotoLimit} free photo analyses remain.` : `Photo intake created a draft. ${Math.max(0,premiumAiAssistsRemaining-1)} of ${premiumAiAssistLimit} annual Premium AI assists remain.`);
@@ -351,7 +377,7 @@ export function App() {
         try {
           const photo = await optimizedPhotoDataUrl(file);
           if (cloudStatus.authenticated && analysisQueueService.isAvailable()) {
-            await queueDurablePhoto(photo, defaultLocation, defaultRoom);
+            await queueDurablePhoto([photo], defaultLocation, defaultRoom);
             durableQueued += 1;
             continue;
           }
@@ -434,6 +460,7 @@ export function App() {
       setBulkImportMessage('');
     }
   };
+  queuePresentation={...queuePresentation,canUseAiPhoto,startItemPhotos:files=>void quickPhotoIntake(files)};
   const saveItem = (next: InventoryItem, addAnother = false) => {
     const exists = items.some(item => item.id === next.id);
     const all = exists ? items.map(item => item.id === next.id ? next : item) : [next, ...items];
@@ -509,7 +536,12 @@ function StoredPhoto({value,alt}:{value:string;alt:string}){
   useEffect(()=>{let active=true;evidenceStorageService.resolveDisplayUrl(value).then(url=>{if(active)setSrc(url||'')}).catch(()=>{if(active)setSrc('')});return()=>{active=false}},[value]);
   return src.startsWith('data:image')||src.startsWith('http')?<img src={src} alt={alt}/>:<div className="photoPlaceholder"><Camera/>Saved photo</div>;
 }
-function PhotoAnalysisQueue({jobs,pendingDrafts,resumeReview,signedIn}:{jobs:AnalysisJob[];pendingDrafts:number;resumeReview:()=>void;signedIn:boolean}){
+function ItemPhotoAssist({canUseAiPhoto,startItemPhotos}:{canUseAiPhoto?:boolean;startItemPhotos?:(files:File[])=>void}){
+  const inputRef=useRef<HTMLInputElement>(null);
+  if (!startItemPhotos) return null;
+  return <section className="panel itemPhotoAssist"><div><p className="eyebrow green">ONE ITEM, BETTER RESULTS</p><h2>Add an overview plus close-ups</h2><p>Choose up to four photos of the same item. Start with a clear overall photo, then add close-ups of the brand, model, serial number, barcode, receipt, or distinguishing marks.</p><ul><li>Keep the item centered and well lit.</li><li>Make and model labels should fill the frame when possible.</li><li>Serial numbers are usually on a separate close-up; ProofVault will flag them for verification.</li><li>If the overview contains several separate items, ProofVault creates review cards so you choose which ones to save.</li></ul></div><div className="itemPhotoAction"><button className="primary" type="button" disabled={!canUseAiPhoto} onClick={()=>inputRef.current?.click()}><Camera/>{canUseAiPhoto?'Add photos of one item':'Enable photo analysis'}</button><small>One overview + up to three close-ups</small></div><input ref={inputRef} className="visuallyHiddenInput" type="file" aria-label="Choose overview and close-up photos of one item" accept="image/*" capture="environment" multiple disabled={!canUseAiPhoto} onChange={event=>{const files=Array.from(event.currentTarget.files??[]);event.currentTarget.value='';if(files.length)startItemPhotos(files);}}/></section>;
+}
+function PhotoAnalysisQueue({jobs,pendingDrafts,resumeReview,signedIn,retryFailed}:{jobs:AnalysisJob[];pendingDrafts:number;resumeReview:()=>void;signedIn:boolean;retryFailed?:(jobId:string)=>void}){
   if (!signedIn) return null;
   const visible=jobs.filter(job=>job.status!=='reviewed'&&job.status!=='cancelled');
   const analyzing=visible.filter(job=>['queued','processing','retrying'].includes(job.status));
@@ -518,7 +550,7 @@ function PhotoAnalysisQueue({jobs,pendingDrafts,resumeReview,signedIn}:{jobs:Ana
   if (!visible.length && !pendingDrafts) return null;
   const statusCopy=(job:AnalysisJob)=>job.status==='queued'?'Saved — waiting to start':job.status==='processing'?'Analyzing photo':job.status==='retrying'?'Temporarily busy — retrying automatically':job.status==='complete'?'Ready for your quick review':'Needs attention';
   const context=(job:AnalysisJob)=>[job.item_context?.location,job.item_context?.room].filter(Boolean).join(' · ') || 'Photo saved to your account';
-  return <section className="panel photoAnalysisQueue" aria-label="Photo analysis queue"><div className="sectionTitle"><div><p className="eyebrow green">PHOTO ANALYSIS QUEUE</p><h2>{analyzing.length?`${analyzing.length} photo${analyzing.length===1?'':'s'} being analyzed`:'Your photo analysis activity'}</h2></div><span className="queueLive"><Sparkles/>Updates automatically</span></div><p className="queueIntro">Every photo is saved to your account first. You can leave the app while analysis continues.</p>{(ready.length||pendingDrafts>0)&&<div className="queueReady"><div><b>{pendingDrafts||ready.length} draft{(pendingDrafts||ready.length)===1?'':'s'} ready to review</b><small>Confirm the name, make, model, serial number, and value before saving.</small></div><button className="primary" onClick={resumeReview}>Review now</button></div>}{visible.map(job=><div className={`analysisJob ${job.status}`} key={job.id}><div className="analysisJobPhoto"><StoredPhoto value={analysisStorageReference(job.storage_path)} alt="Saved photo waiting for analysis"/></div><div><b>{statusCopy(job)}</b><small>{context(job)}</small><small>Added {dateTime(job.created_at)}{job.attempts>1?` · Attempt ${job.attempts}`:''}</small>{job.status==='failed'&&job.last_error&&<span className="analysisError">{job.last_error}</span>}</div><span className={`jobStatus ${job.status}`}>{job.status==='processing'?'Working':job.status==='retrying'?'Retrying':job.status==='complete'?'Ready':job.status==='failed'?'Needs help':'Queued'}</span></div>)}{needsHelp.length>0&&<p className="queueHelp">These photos remain saved. Open ProofVault again later to retry them automatically; no re-upload is needed.</p>}</section>;
+  return <section className="panel photoAnalysisQueue" aria-label="Photo analysis queue"><div className="sectionTitle"><div><p className="eyebrow green">PHOTO ANALYSIS QUEUE</p><h2>{analyzing.length?`${analyzing.length} photo${analyzing.length===1?'':'s'} being analyzed`:'Your photo analysis activity'}</h2></div><span className="queueLive"><Sparkles/>Updates automatically</span></div><p className="queueIntro">Every photo is saved to your account first. You can leave the app while analysis continues.</p>{(ready.length||pendingDrafts>0)&&<div className="queueReady"><div><b>{pendingDrafts||ready.length} draft{(pendingDrafts||ready.length)===1?'':'s'} ready to review</b><small>Confirm the name, make, model, serial number, and value before saving.</small></div><button className="primary" onClick={resumeReview}>Review now</button></div>}{visible.map(job=><div className={`analysisJob ${job.status}`} key={job.id}><div className="analysisJobPhoto"><StoredPhoto value={analysisStorageReference(job.storage_path)} alt="Saved photo waiting for analysis"/></div><div><b>{statusCopy(job)}</b><small>{context(job)}</small><small>Added {dateTime(job.created_at)}{job.attempts>1?` · Attempt ${job.attempts}`:''}</small>{job.status==='failed'&&job.last_error&&<span className="analysisError">{job.last_error}</span>}</div><div className="analysisJobAction"><span className={`jobStatus ${job.status}`}>{job.status==='processing'?'Working':job.status==='retrying'?'Retrying':job.status==='complete'?'Ready':job.status==='failed'?'Needs help':'Queued'}</span>{job.status==='failed'&&retryFailed&&<button onClick={()=>retryFailed(job.id)}>Retry analysis</button>}</div></div>)}{needsHelp.length>0&&<p className="queueHelp">This photo remains saved. Fix the message above, then choose Retry analysis; no re-upload is needed.</p>}</section>;
 }
 function Score({item}:{item:InventoryItem}){const s=completenessScore(item);return <div className="score"><span style={{width:`${s.score}%`}}/><small>{s.score}%</small></div>}
 function ItemRow({item,open}:{item:InventoryItem;open:(id:string)=>void}){return <button className="itemrow" onClick={()=>open(item.id)}><ItemIcon category={item.category}/><div><b>{item.itemName}</b><small>{item.location} - {item.serialNumber||item.ownerMarking||'Needs identifier'}</small></div><Score item={item}/><ChevronRight/></button>}
@@ -537,7 +569,7 @@ function ReviewQueue({items,open,edit}:{items:InventoryItem[];open:(id:string)=>
   const {records,total,issueSummary}=itemReviewBacklog(items,4);
   const first=records[0];
   const reviewPanel=!records.length ? <section className="panel reviewQueue clear"><div className="sectionTitle"><div><p className="eyebrow">BULK REVIEW QUEUE</p><h2>All quick checks are clear</h2><small>{items.length ? 'No active item currently needs AI review, make/model, serial verification, value, photo, receipt, or appraisal follow-up.' : 'Add items with fast photo intake, then review tasks will appear here.'}</small></div><span className="ok"><Check/>Clear</span></div></section> : <section className="panel reviewQueue"><div className="sectionTitle"><div><p className="eyebrow">BULK REVIEW QUEUE</p><h2>Quick checks before you move on</h2><small>Sorted so make/model, likely AI-prefill, and serial checks float to the top.</small></div><div className="queueActions"><span>{records.length} of {total} shown</span>{first&&<button onClick={()=>edit(first.item.id)}>Review next</button>}</div></div><div className="reviewChips" aria-label="Review backlog by issue type">{issueSummary.map(issue=><span key={issue.id}>{issue.label}: {issue.count}</span>)}</div>{records.map(record=><button key={record.item.id} onClick={()=>open(record.item.id)}><TriangleAlert/><div><b>{record.item.itemName}</b><small>{record.flags[0].label} - {record.flags[0].detail}</small><span className="reviewReasons">{record.flags.map(flag=>flag.label).join(' - ')}</span></div><ChevronRight/></button>)}</section>;
-  return <><PhotoAnalysisQueue {...queuePresentation}/>{reviewPanel}</>;
+  return <><ItemPhotoAssist {...queuePresentation}/><PhotoAnalysisQueue {...queuePresentation}/>{reviewPanel}</>;
 }
 function BulkReviewView({drafts,update,save,skip,saveAll,back}:{drafts:InventoryItem[];update:(id:string,patch:Partial<InventoryItem>)=>void;save:(id:string)=>void;skip:(id:string)=>void;saveAll:()=>void;back:()=>void}){
   const current=drafts[0];

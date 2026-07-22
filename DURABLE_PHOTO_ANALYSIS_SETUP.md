@@ -8,7 +8,11 @@ In the Supabase SQL Editor, run:
 
 `supabase/migrations/0003_durable_photo_analysis_jobs.sql`
 
-This creates the private per-user job queue. Do not loosen its row-level-security policies.
+Then run:
+
+`supabase/migrations/0004_multi_photo_intake.sql`
+
+Together these create the private per-user job queue and let one job safely hold an overview photo plus close-ups of the same item. Do not loosen its row-level-security policies.
 
 ## Required Vercel environment variables
 
@@ -38,6 +42,8 @@ Before charging customers, change the schedule to every five minutes and use a V
 ## What customers experience
 
 - Each photo is safely stored before it is analyzed.
+- For one item, users can submit up to four photos: one overview plus close-ups of the make/model, serial number, barcode, or condition.
+- If the overview contains multiple distinct items, ProofVault creates separate unsaved review cards so the user chooses which records to keep.
 - A provider outage puts the job into `retrying`; no credit is used.
 - Completed analysis drafts appear automatically in the normal bulk-review flow.
 - After ten unsuccessful attempts, the job is marked failed but the original private photo remains stored for support or manual review.
