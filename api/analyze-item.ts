@@ -1,5 +1,7 @@
 // Keep this Vercel Function self-contained. Runtime imports from the workspace
 // packages are not bundled reliably for this standalone serverless entry point.
+declare const process: { env: Record<string, string | undefined> };
+
 type Confidence = 'low' | 'medium' | 'high';
 type ItemCondition = 'new' | 'used' | 'refurbished' | 'unknown';
 type ItemStatus = 'normal' | 'stolen' | 'damaged' | 'destroyed' | 'missing' | 'recovered';
@@ -72,6 +74,11 @@ function headerValue(req: VercelRequest, name: string) {
   return Array.isArray(value)?value[0]:value;
 }
 
+function isTrustedQueueWorker(req: VercelRequest) {
+  const secret = process.env.PROOFVAULT_QUEUE_WORKER_SECRET;
+  return Boolean(secret && headerValue(req, 'x-proofvault-queue-secret') === secret);
+}
+
 async function verifiedUser(req: VercelRequest): Promise<VerifiedUser> {
   const url=process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const anonKey=process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -83,6 +90,7 @@ async function verifiedUser(req: VercelRequest): Promise<VerifiedUser> {
 }
 
 async function consumeAiAssist(req: VercelRequest) {
+  if (isTrustedQueueWorker(req)) return;
   if(process.env.AI_USAGE_ENFORCEMENT!=='true')return;
   const url=process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceRoleKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -273,6 +281,7 @@ function providerUnavailableError() {
 async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiItemJson> {
   const apiKey = process.env.GEMINI_API_KEY;
   const model = process.env.GEMINI_VISION_MODEL || 'gemini-3.5-flash';
+  const models = [...new Set([model, process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash'])];
   if (!apiKey) throw new Error('Gemini is not configured.');
 
   const image = request.photos[0]?.uri;
@@ -299,36 +308,38 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
     }
   });
 
-  // Gemini documents 429 and 5xx responses as transient. Retry a small number
-  // of times with backoff so a temporary capacity spike does not create a mock record.
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-        method: 'POST',
-        headers: { 'x-goog-api-key': apiKey, 'content-type': 'application/json' },
-        body: requestBody
-      });
-      if (response.ok) {
-        const text = parseGeminiText(await response.json());
-        const start = text.indexOf('{');
-        const end = text.lastIndexOf('}');
-        if (start < 0 || end < start) throw new Error('Gemini response was not valid JSON.');
-        return JSON.parse(text.slice(start, end + 1));
-      }
+  // Gemini documents 429 and 5xx responses as transient. Retry the preferred
+  // model once, then use a stable multimodal fallback before reporting failure.
+  for (const activeModel of models) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModel)}:generateContent`, {
+          method: 'POST',
+          headers: { 'x-goog-api-key': apiKey, 'content-type': 'application/json' },
+          body: requestBody
+        });
+        if (response.ok) {
+          const text = parseGeminiText(await response.json());
+          const start = text.indexOf('{');
+          const end = text.lastIndexOf('}');
+          if (start < 0 || end < start) throw new Error('Gemini response was not valid JSON.');
+          return JSON.parse(text.slice(start, end + 1));
+        }
 
-      const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
-      if (!retryable) {
-        const error = new Error(`Gemini photo analysis failed: ${response.status}`) as Error & { code?: string };
-        error.code = 'AI_PROVIDER_REQUEST_FAILED';
-        throw error;
+        const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
+        if (!retryable) {
+          const error = new Error(`Gemini photo analysis failed: ${response.status}`) as Error & { code?: string };
+          error.code = 'AI_PROVIDER_REQUEST_FAILED';
+          throw error;
+        }
+        console.warn('[analyze-item] transient Gemini response', { model: activeModel, status: response.status, attempt });
+      } catch (error) {
+        if ((error as Error & { code?: string }).code === 'AI_PROVIDER_REQUEST_FAILED') throw error;
+        console.warn('[analyze-item] transient Gemini request failure', { model: activeModel, attempt, message: error instanceof Error ? error.message : 'Unknown error' });
       }
-      console.warn('[analyze-item] transient Gemini response', { status: response.status, attempt });
-    } catch (error) {
-      if ((error as Error & { code?: string }).code === 'AI_PROVIDER_UNAVAILABLE' || (error as Error & { code?: string }).code === 'AI_PROVIDER_REQUEST_FAILED') throw error;
-      if (attempt === 3) throw providerUnavailableError();
-      console.warn('[analyze-item] transient Gemini request failure', { attempt, message: error instanceof Error ? error.message : 'Unknown error' });
+      if (attempt < 2) await pause(500);
     }
-    if (attempt < 3) await pause(500 * 2 ** (attempt - 1));
+    console.warn('[analyze-item] Gemini model exhausted; trying fallback', { model: activeModel });
   }
 
   throw providerUnavailableError();
@@ -389,7 +400,18 @@ function responseFromAi(request: SecureItemIntakeRequest, ai: AiItemJson, source
 }
 
 async function analyzeWithConfiguredProvider(request: SecureItemIntakeRequest) {
-  if (process.env.GEMINI_API_KEY) return responseFromAi(request, await analyzeWithGemini(request), 'gemini-vision');
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      return responseFromAi(request, await analyzeWithGemini(request), 'gemini-vision');
+    } catch (error) {
+      const openAiConfigured = Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_VISION_MODEL);
+      if ((error as Error & { code?: string }).code === 'AI_PROVIDER_UNAVAILABLE' && openAiConfigured) {
+        console.warn('[analyze-item] Gemini unavailable; trying OpenAI fallback');
+        return responseFromAi(request, await analyzeWithOpenAi(request), 'openai-vision');
+      }
+      throw error;
+    }
+  }
   if (process.env.OPENAI_API_KEY && process.env.OPENAI_VISION_MODEL) return responseFromAi(request, await analyzeWithOpenAi(request), 'openai-vision');
   return mockResponse(request);
 }
@@ -405,7 +427,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('[analyze-item] request received', {
       photoCount: request.photos.length,
       includeValuation: request.includeValuation,
-      provider: process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'mock'
+      provider: process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'mock',
+      queued: isTrustedQueueWorker(req)
     });
     await consumeAiAssist(req);
     const response = await analyzeWithConfiguredProvider(request);
